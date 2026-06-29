@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tartera — Vehículo de inversión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF9F6;
+    --ink:#221F1A;
+    --ink-soft:#5A5953;
+    --ink-mute:#8C8B85;
+    --line:#E4E2DA;
+    --mint:#0F6E56;
+    --mint-soft:#7FCBA4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Inter',Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',Georgia,serif;
+    font-optical-sizing:auto;
+    font-weight:400;
+    letter-spacing:-0.01em;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 44px;}
+  a{color:inherit;text-decoration:none;}
+  img{display:block;width:100%;height:100%;object-fit:cover;}
+
+  /* ---------- Nav ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(250,249,246,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:0.5px solid var(--line);
+  }
+  nav{display:flex;justify-content:space-between;align-items:center;padding:22px 44px;max-width:1180px;margin:0 auto;}
+  .logo{font-size:13px;letter-spacing:0.12em;font-weight:500;}
+  .nav-links{display:flex;gap:30px;font-size:11px;letter-spacing:0.06em;color:var(--ink-mute);}
+  .nav-links a:hover{color:var(--mint);}
+  .nav-contact{color:var(--mint);}
+  .nav-toggle{display:none;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    display:grid;grid-template-columns:0.7fr 1.3fr;align-items:center;
+    gap:48px;padding:48px 0;
+  }
+  .eyebrow{font-size:11px;letter-spacing:0.14em;color:var(--mint);margin-bottom:20px;}
+  .hero h1{font-size:clamp(32px,4vw,52px);line-height:1.08;color:var(--mint);margin-bottom:26px;}
+  .hero p{font-size:15px;line-height:1.7;color:var(--ink-soft);max-width:380px;}
+  .hero-frame{
+    aspect-ratio:3/2;border-radius:10px;overflow:hidden;
+    position:relative;
+  }
+  .hero-frame img{
+    filter:grayscale(100%) contrast(105%);
+  }
+  .placeholder-tag{
+    position:absolute;bottom:14px;left:14px;
+    background:rgba(34,31,26,0.78);color:#F4F3EF;
+    font-size:10px;letter-spacing:0.08em;padding:6px 10px;border-radius:3px;
+  }
+
+  /* ---------- Editorial image treatment ---------- */
+  .hover-zoom img{
+    filter:grayscale(0%) contrast(100%);
+  }
+
+  /* ---------- Metrics strip ---------- */
+  .metrics-strip{
+    display:flex;gap:0;
+    border-top:0.5px solid var(--line);
+    border-bottom:0.5px solid var(--line);
+    padding:40px 0;margin-bottom:0;
+  }
+  .metric{
+    flex:1;text-align:center;
+    border-right:0.5px solid var(--line);
+    padding:0 24px;
+  }
+  .metric:last-child{border-right:none;}
+  .metric-value{
+    display:block;
+    font-family:'Fraunces',Georgia,serif;
+    font-size:clamp(24px,3vw,40px);
+    color:var(--mint);line-height:1;margin-bottom:8px;
+  }
+  .metric-label{
+    font-size:10px;letter-spacing:0.12em;color:var(--ink-mute);
+  }
+
+  /* ---------- Chapter divider ---------- */
+  .chapter-rule{
+    border-top:0.5px solid var(--line);
+    font-size:10px;letter-spacing:0.12em;color:var(--ink-mute);
+    padding:18px 0;
+  }
+
+  /* ---------- Chapter sections ---------- */
+  .chapter{padding:72px 0;}
+  .chapter-grid{display:grid;grid-template-columns:0.85fr 1.15fr;gap:48px;align-items:center;}
+  .chapter-grid.reverse{grid-template-columns:1.15fr 0.85fr;}
+  .chapter-grid.reverse .chapter-media{order:2;}
+  .chapter-media{
+    aspect-ratio:4/5;border-radius:10px;overflow:hidden;position:relative;
+    background:linear-gradient(200deg,#2c2c28,#888680 70%);
+  }
+  .chapter-media.cerdanya{background:none;}
+  .chapter-media.real{aspect-ratio:4/3;}
+  .chapter-tag{font-size:11px;letter-spacing:0.12em;color:var(--mint);margin-bottom:16px;}
+  .chapter h2{font-size:clamp(26px,3vw,34px);line-height:1.22;margin-bottom:20px;}
+  .chapter p.lede{font-size:14px;line-height:1.72;color:var(--ink-soft);max-width:420px;margin-bottom:30px;}
+
+  .portfolio-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:36px 24px;
+  }
+  .portfolio-item{
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    height:46px;
+  }
+  .portfolio-item img{
+    max-height:26px;max-width:100%;width:auto;height:auto;object-fit:contain;
+  }
+  .portfolio-badge{
+    position:absolute;top:-10px;right:0;
+    display:flex;gap:3px;
+  }
+  .portfolio-badge span{
+    font-family:'Inter',sans-serif;font-size:9px;letter-spacing:0.03em;
+    color:var(--mint);border:0.5px solid var(--mint-soft);
+    border-radius:3px;padding:1px 5px;background:rgba(15,110,86,0.06);
+  }
+  .portfolio-legend{
+    margin-top:28px;font-size:11px;color:var(--ink-mute);
+  }
+  .portfolio-legend span{
+    font-size:9px;color:var(--mint);border:0.5px solid var(--mint-soft);
+    border-radius:3px;padding:1px 5px;margin-right:4px;
+  }
+
+  /* ---------- News strip ---------- */
+  .news-strip{padding:12px 0 48px;}
+  .news-strip .section-label{font-size:10px;letter-spacing:0.12em;color:var(--ink-mute);margin-bottom:24px;}
+  .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .news-card{
+    border:0.5px solid var(--line);border-radius:8px;padding:22px 20px;
+    display:flex;flex-direction:column;gap:10px;
+    transition:border-color 0.2s;
+  }
+  .news-card:hover{border-color:var(--mint-soft);}
+  .news-meta{display:flex;gap:8px;align-items:center;}
+  .news-source{font-size:9px;letter-spacing:0.1em;color:var(--ink-mute);}
+  .news-date{font-size:9px;color:var(--ink-mute);}
+  .news-card h4{font-family:'Fraunces',Georgia,serif;font-size:15px;line-height:1.3;font-weight:400;color:var(--ink);}
+  .news-card .news-tag{font-size:9px;letter-spacing:0.08em;color:var(--mint);margin-top:auto;}
+
+  /* ---------- Associations strip ---------- */
+  .associations{padding:8px 0 80px;}
+  .associations p.label{
+    font-size:10px;letter-spacing:0.12em;color:var(--ink-mute);margin-bottom:20px;
+  }
+  .associations-row{
+    display:flex;gap:40px;flex-wrap:wrap;align-items:center;
+  }
+  .assoc-logo{
+    display:flex;align-items:center;transition:filter 0.2s;
+  }
+  .assoc-logo img{
+    height:28px;width:auto;object-fit:contain;
+    filter:grayscale(100%) opacity(0.55);
+    mix-blend-mode:multiply;
+    transition:filter 0.2s;
+  }
+  .assoc-logo:hover img{filter:grayscale(100%) opacity(1);}
+  .assoc-logo.netmentora img{filter:grayscale(100%) invert(1) brightness(0) opacity(0.55);}
+  .assoc-logo.netmentora:hover img{filter:grayscale(100%) invert(1) brightness(0) opacity(1);}
+  .assoc-logo.iese{overflow:hidden;width:82px;}
+  .assoc-logo.iese img{height:28px;width:auto;max-width:none;}
+
+  /* ---------- Portfolio detail strip ---------- */
+  .detail-strip{border-top:0.5px solid var(--line);padding:56px 0;}
+  .detail-grid{display:grid;grid-template-columns:0.42fr 1.58fr;gap:28px;align-items:start;}
+  .detail-grid.single{grid-template-columns:1fr;text-align:center;}
+  .detail-grid.single p{max-width:640px;margin:0 auto;}
+  .detail-media{aspect-ratio:1;border-radius:10px;overflow:hidden;background:linear-gradient(150deg,#DEDCD4,#6E6D64);}
+  .detail-label{font-size:10px;letter-spacing:0.12em;color:var(--ink-mute);margin-bottom:10px;}
+  .detail-grid h3{font-size:24px;margin-bottom:32px;}
+  .detail-grid p{font-size:13.5px;line-height:1.7;color:var(--ink-soft);max-width:460px;}
+
+  /* ---------- Bio brands ---------- */
+  .bio-brands{margin-top:20px;display:flex;flex-direction:column;gap:12px;max-width:560px;margin-left:auto;margin-right:auto;}
+  .bio-brand-group{display:flex;gap:10px;font-size:12px;line-height:1.65;text-align:left;}
+  .bio-brand-label{flex-shrink:0;font-size:10px;letter-spacing:0.1em;color:var(--mint);padding-top:2px;width:64px;}
+  .bio-brand-list{color:var(--ink-soft);}
+
+  /* ---------- Real Estate list ---------- */
+  .re-list{margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:0 24px;}
+  .re-col{display:flex;flex-direction:column;gap:8px;}
+  .re-item{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:8px;}
+  .re-arrow{font-size:18px;color:var(--mint);line-height:1;}
+
+  /* ---------- CTA button ---------- */
+  .btn-contact{
+    display:inline-block;margin-top:28px;
+    padding:12px 28px;
+    border:1px solid var(--mint);
+    color:var(--mint);font-size:11px;letter-spacing:0.1em;
+    border-radius:4px;transition:background 0.2s,color 0.2s;
+  }
+  .btn-contact:hover{background:var(--mint);color:#fff;}
+
+  /* ---------- Contact ---------- */
+  footer{border-top:0.5px solid var(--line);padding:72px 0 48px;text-align:center;}
+  footer .chapter-tag{display:block;}
+  footer h2{font-size:30px;margin-bottom:30px;}
+  .contact-row{display:flex;justify-content:center;gap:36px;font-size:11px;letter-spacing:0.05em;color:var(--ink-mute);flex-wrap:wrap;}
+  .contact-row a:hover{color:var(--mint);}
+  .legal{margin-top:36px;font-size:10.5px;color:var(--ink-mute);}
+
+  /* ---------- Notes / build markers (remove before launch) ---------- */
+  .build-note{
+    background:#FFF6E0;border:1px dashed #C9A227;color:#5C4A0E;
+    font-family:'Inter',sans-serif;font-size:11px;line-height:1.6;
+    padding:10px 14px;border-radius:3px;margin-top:14px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:860px){
+    .wrap,nav{padding-left:24px;padding-right:24px;}
+    .hero,.chapter-grid,.chapter-grid.reverse,.detail-grid{
+      grid-template-columns:1fr;gap:28px;
+    }
+    .chapter-grid.reverse .chapter-media{order:0;}
+    .portfolio-grid{grid-template-columns:repeat(2,1fr);}
+    .nav-links{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <span class="logo">TARTERA</span>
+    <div class="nav-links">
+      <a href="#empresas">EMPRESAS</a>
+      <a href="#real-estate">REAL ESTATE</a>
+      <a href="#equipo">EQUIPO</a>
+      <a href="#contacto" class="nav-contact">CONTACTO</a>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <h1>Capital paciente y experiencia operativa.</h1>
+      <p>Tartera es la firma de inversión privada que consolida nuestra actividad empresarial y patrimonial. Gestionamos un ecosistema de inversión independiente, equilibrando el riesgo del Venture Capital y los mercados financieros con la rentabilidad recurrente del Real Estate. Invertimos nuestro propio capital, apoyados por una red de co-inversores de primer nivel.</p>
+      <a href="mailto:hello@tartera.vc" class="btn-contact">Contacto</a>
+    </div>
+    <div class="hero-frame">
+      <img src="2000-4-2-CAPA-FONS-prat-de-cadi-1.webp" alt="Prat de Cadí">
+    </div>
+  </section>
+
+  <!-- MÉTRICAS -->
+  <div class="metrics-strip">
+    <div class="metric">
+      <span class="metric-value">34</span>
+      <span class="metric-label">Partícipes</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value">11</span>
+      <span class="metric-label">Proyectos</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value">10M€</span>
+      <span class="metric-label">AUM</span>
+    </div>
+  </div>
+
+  <div class="chapter-rule">EMPRESAS</div>
+
+  <!-- EMPRESAS -->
+  <section class="chapter" id="empresas">
+    <div class="chapter-grid reverse">
+      <div>
+        <p class="chapter-tag">EMPRESAS</p>
+        <h2>Experiencia operativa para diseñar el futuro.</h2>
+        <p class="lede">Participamos en compañías con fundadores fuertes y modelos de negocio probados, aportando algo más que capital: criterio, red y la experiencia de haber construido y vendido una empresa propia.</p>
+        <div class="portfolio-grid">
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>IN</span></span>
+            <img src="logos/cuimo_mono.png" alt="Cuimo">
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>IN</span></span>
+            <img src="logos/guruwalk_mono.png" alt="GuruWalk">
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>IN</span></span>
+            <img src="logos/apolokids_mono.png" alt="Apolo Kids">
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>FD</span></span>
+            <img src="logos/hanaley_mono.png" alt="Hanaley">
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>IN</span></span>
+            <img src="logos/tutramitefacil_mono.png" alt="Tu trámite fácil">
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>IN</span></span>
+            <span style="font-family:'Inter',sans-serif;font-size:11px;color:var(--ink-mute);letter-spacing:0.04em;">SCUBA FINDERS</span>
+          </div>
+          <div class="portfolio-item">
+            <span class="portfolio-badge"><span>FD</span><span>EX</span></span>
+            <img src="logos/rocket_mono.png" alt="Rocket">
+          </div>
+        </div>
+        <p class="portfolio-legend"><span>IN</span> Invertida &nbsp; <span>FD</span> Fundada &nbsp; <span>EX</span> Exit</p>
+      </div>
+      <div class="chapter-media hover-zoom">
+        <img src="hero.jpg" alt="Barcelona">
+      </div>
+    </div>
+  </section>
+
+  <!-- NOTICIAS -->
+  <section class="news-strip">
+    <p class="section-label">EN PRENSA</p>
+    <div class="news-grid">
+      <a class="news-card" href="https://www.eleconomista.es/capital-riesgo/noticias/13347257/05/25/seaya-entra-en-el-marketplace-de-motocicletas-cuimo-y-se-refuerza-en-movilidad.html" target="_blank" rel="noopener">
+        <div class="news-meta">
+          <span class="news-source">EL ECONOMISTA</span>
+          <span class="news-date">· Mayo 2025</span>
+        </div>
+        <h4>Seaya entra en el marketplace de motocicletas Cuimo y se refuerza en movilidad</h4>
+        <span class="news-tag">CUIMO</span>
+      </a>
+      <a class="news-card" href="https://www.eleconomista.es/transportes-turismo/noticias/13473022/07/25/la-agencia-de-viajes-hanaley-crece-un-40-a-las-puertas-de-su-primera-ronda-de-financiacion.html" target="_blank" rel="noopener">
+        <div class="news-meta">
+          <span class="news-source">EL ECONOMISTA</span>
+          <span class="news-date">· Julio 2025</span>
+        </div>
+        <h4>La agencia de viajes Hanaley crece un 40% a las puertas de su primera ronda de financiación</h4>
+        <span class="news-tag">HANALEY</span>
+      </a>
+      <a class="news-card" href="https://www.eleconomista.es/medios-comunicacion/noticias/13729407/01/26/jungle-adquiere-la-consultora-rocket-y-suma-su-quinta-adquisicion-en-dos-anos.html" target="_blank" rel="noopener">
+        <div class="news-meta">
+          <span class="news-source">EL ECONOMISTA</span>
+          <span class="news-date">· Enero 2026</span>
+        </div>
+        <h4>Jungle adquiere la consultora Rocket y suma su quinta adquisición en dos años</h4>
+        <span class="news-tag">ROCKET</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="chapter-rule">REAL ESTATE</div>
+
+  <!-- REAL ESTATE -->
+  <section class="chapter" id="real-estate">
+    <div class="chapter-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="chapter-media real cerdanya hover-zoom" style="order:0;">
+        <img src="cerdanya.jpg" alt="Activo residencial en propiedad">
+      </div>
+      <div style="order:1;">
+        <p class="chapter-tag">REAL ESTATE</p>
+        <h2>Invertimos en activos con carácter, en lugares que no pasan de moda.</h2>
+        <p class="lede">Adquirimos propiedades con potencial, las diseñamos con criterio y las explotamos mediante alquiler residencial o vacacional. Rentabilidad recurrente sobre activos que se revalorizan con el tiempo.</p>
+        <div class="re-list">
+          <div class="re-col">
+            <div class="re-item"><span class="re-arrow">&rsaquo;</span> Tartera</div>
+            <div class="re-item"><span class="re-arrow">&rsaquo;</span> Provenza</div>
+          </div>
+          <div class="re-col">
+            <div class="re-item"><span class="re-arrow">&rsaquo;</span> Mandri</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MANAGING DIRECTOR -->
+  <div class="chapter-rule">EQUIPO</div>
+  <section class="chapter" id="equipo" style="padding-top:48px;">
+    <div>
+        <p class="chapter-tag">MANAGING DIRECTOR</p>
+        <h2 style="font-size:clamp(26px,3vw,34px);line-height:1.22;margin-bottom:20px;">Nacho Rodés Galobart</h2>
+        <p class="lede" style="max-width:none;">Barcelona, 1983. Licenciado en Administración y Dirección de Empresas y PDG por IESE Business School (2023). Fundador y CEO de Rocket Digital desde 2014 (hoy parte de JUNGLE), complementa su actividad profesional con la inversión y el venture building, participando en empresas, mercados financieros y real estate.</p>
+        <p class="lede" style="max-width:none;">Desde 2006 ha colaborado estrechamente en más de 500 proyectos, como Olistic, Clickair/Vueling, Robin, PadelProShop, Meller, SKIN Generics, GOA Organics, Noirfonce, Glovo, GOBIK, Exoticca, Holded, Fever, Superstudio, FC Barcelona, Natura, INDITEX, Scalpers, Brownie, Silbon, Simorra, Allianz, Danone, L'Occitane y Caixabank, entre otros.</p>
+        <p class="lede" style="max-width:none;">Activo en hockey hierba y esquí, reside en Barcelona junto a su familia.</p>
+    </div>
+  </section>
+
+  <section class="associations">
+    <p class="label">ASOCIACIONES</p>
+    <div class="associations-row">
+      <a class="assoc-logo" href="https://www.seedrocket.com" target="_blank" rel="noopener">
+        <img src="logos/descarga.png" alt="SeedRocket">
+      </a>
+      <a class="assoc-logo iese" href="https://alumni.iese.edu" target="_blank" rel="noopener">
+        <img src="logos/logo-sm-red.svg" alt="IESE">
+      </a>
+      <a class="assoc-logo" href="https://www.cercledeconomia.com" target="_blank" rel="noopener">
+        <img src="logos/logo-cercle.png" alt="Cercle d'Economia">
+      </a>
+      <a class="assoc-logo netmentora" href="https://www.netmentoracatalunya.org/" target="_blank" rel="noopener">
+        <img src="logos/netmentora_white.avif" alt="NetMentora">
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer id="contacto">
+  <div class="contact-row">
+    <a href="mailto:hello@tartera.vc">HELLO@TARTERA.VC</a>
+    <a href="https://www.linkedin.com/in/nachorodes/" target="_blank" rel="noopener">LINKEDIN</a>
+  </div>
+  <p class="legal">© 2026 Tartera. Todos los derechos reservados.</p>
+</footer>
+
+</body>
+</html>
