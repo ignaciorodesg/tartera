@@ -157,6 +157,35 @@
 </div></section>
 <footer><span>Bellesguard</span><span>Nacimiento 1983 · esperanza 83 años</span></footer>
 </main></div><script>
+/* Formato español en toda la app: miles con punto, decimales con coma.
+   nFmt  -> numero a texto ("1.234.567,89")
+   nParse-> texto a numero, aceptando ambos formatos sin ambiguedad */
+window.nFmt = function (n, dec) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  const d = dec === undefined ? (Number.isInteger(v) ? 0 : 2) : dec;
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' }).format(v);
+};
+window.nParse = function (s) {
+  let t = String(s == null ? '' : s).replace(/[^\d.,-]/g, '');
+  if (!t) return 0;
+  const neg = /^-/.test(t);
+  t = t.replace(/-/g, '');
+  const punto = t.lastIndexOf('.'), coma = t.lastIndexOf(',');
+  if (punto > -1 && coma > -1) {
+    // El ultimo separador manda: el otro es de miles
+    t = coma > punto ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (coma > -1) {
+    t = t.replace(',', '.');
+  } else if (punto > -1) {
+    // Solo puntos: es agrupacion de miles si van en grupos exactos de 3
+    if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  }
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? (neg ? -n : n) : 0;
+};
+</script>
+<script>
 'use strict';
 const NACIMIENTO = new Date(1983, 0, 1);   // Barcelona, 1983
 const ESPERANZA = 83;                       // años, media española
@@ -164,7 +193,7 @@ const hoy = new Date();
 const SEM = Math.floor((hoy - NACIMIENTO) / (7*24*3600*1000));
 const TOTAL = ESPERANZA * 52;
 const $ = id => document.getElementById(id);
-const nf = n => new Intl.NumberFormat('es-ES').format(n);
+const nf = n => new Intl.NumberFormat('es-ES',{useGrouping:'always'}).format(n);
 
 $('kpis').innerHTML = `
  <div class="kpi"><div class="lab">EDAD</div><div class="v num">${Math.floor(SEM/52)} años</div><div class="s">Desde 1983</div></div>

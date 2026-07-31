@@ -165,6 +165,9 @@ solo tocas lo que ha cambiado y guardas de una vez.</div></div>
   <select id="mes"></select>
   <button class="btn ghost" id="copiar">Copiar del mes anterior</button>
   <span class="sep"></span>
+  <label style="font-size:11px;letter-spacing:.1em;color:var(--mute)">COSTE DE VIDA ANUAL</label>
+  <input id="vida" inputmode="decimal" style="width:120px">
+  <span class="sep"></span>
   <span class="state" id="state"></span>
   <button class="btn" id="guardar">GUARDAR CIERRE</button>
 </div>
@@ -175,6 +178,35 @@ solo tocas lo que ha cambiado y guardas de una vez.</div></div>
 </main></div>
 
 <script>
+/* Formato español en toda la app: miles con punto, decimales con coma.
+   nFmt  -> numero a texto ("1.234.567,89")
+   nParse-> texto a numero, aceptando ambos formatos sin ambiguedad */
+window.nFmt = function (n, dec) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  const d = dec === undefined ? (Number.isInteger(v) ? 0 : 2) : dec;
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' }).format(v);
+};
+window.nParse = function (s) {
+  let t = String(s == null ? '' : s).replace(/[^\d.,-]/g, '');
+  if (!t) return 0;
+  const neg = /^-/.test(t);
+  t = t.replace(/-/g, '');
+  const punto = t.lastIndexOf('.'), coma = t.lastIndexOf(',');
+  if (punto > -1 && coma > -1) {
+    // El ultimo separador manda: el otro es de miles
+    t = coma > punto ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (coma > -1) {
+    t = t.replace(',', '.');
+  } else if (punto > -1) {
+    // Solo puntos: es agrupacion de miles si van en grupos exactos de 3
+    if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  }
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? (neg ? -n : n) : 0;
+};
+</script>
+<script>
 'use strict';
 const PROPS = ["Bellesguard 47", "Mandri 29", "Provenza", "Tartera"];
 const CAMPOS_RE = ["Renta", "Cuota pr\u00e9stamo", "IBI", "Otros gastos", "Valor de mercado", "Hipoteca pendiente"];
@@ -184,8 +216,8 @@ const TITULOS = {patrimonial:'2. Patrimonial', caja:'3. Caja', activos:'4. Activ
 const $ = id => document.getElementById(id);
 const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const lbl = s => MES[+s.slice(5)-1] + " '" + s.slice(2,4);
-const eur = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n||0);
-const parse = s => { const n = parseFloat(String(s).replace(/[^\d,.-]/g,'').replace(',','.')); return Number.isFinite(n)?n:0; };
+const eur = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0,useGrouping:'always'}).format(n||0);
+const parse = s => nParse(s);
 
 let RE = {};      // mes -> [4][6]
 let BL = {};      // bloque -> mes -> [cols]
@@ -220,6 +252,7 @@ async function cargar() {
   try {
     const meta = await (await api('/api/data')).json();
     ultimo = meta.meta && meta.meta.current_month;
+    $('vida').value = nFmt(Math.round(nParse((meta.meta||{}).lifestyle_cost) || 100000));
     if (!ultimo) {
       const reales = (meta.series||[]).filter(s => s.is_actual).map(s => s.month).sort();
       ultimo = reales[reales.length-1];
@@ -258,7 +291,7 @@ function pintar() {
     h += `<div class="sub2">${p.toUpperCase()}</div><div class="campos">`;
     CAMPOS_RE.forEach((c,j) => {
       h += `<div class="campo"><label title="${c}">${c}</label>
-        <input data-t="re" data-p="${i}" data-c="${j}" inputmode="decimal" value="${re[i][j]||0}"></div>`;
+        <input data-t="re" data-p="${i}" data-c="${j}" inputmode="decimal" value="${nFmt(re[i][j]||0)}"></div>`;
     });
     h += '</div>';
   });
@@ -269,7 +302,7 @@ function pintar() {
     h += `<div class="grupo"><h2>${TITULOS[b]}</h2><div class="tot" id="tot-${b}"></div><div class="campos">`;
     COLS[b].forEach((c,i) => {
       h += `<div class="campo"><label title="${c}">${c}</label>
-        <input data-t="bl" data-b="${b}" data-c="${i}" inputmode="decimal" value="${v[i]||0}"></div>`;
+        <input data-t="bl" data-b="${b}" data-c="${i}" inputmode="decimal" value="${nFmt(v[i]||0)}"></div>`;
     });
     h += '</div></div>';
   }
@@ -313,8 +346,8 @@ $('copiar').addEventListener('click', () => {
   for (const b of Object.keys(COLS)) bl[b] = (BL[b]||{})[prev];
   if (!re) { estado('No hay datos del mes anterior', 'err'); return; }
   document.querySelectorAll('#form input').forEach(el => {
-    if (el.dataset.t === 're') el.value = re[+el.dataset.p][+el.dataset.c] || 0;
-    else if (bl[el.dataset.b]) el.value = bl[el.dataset.b][+el.dataset.c] || 0;
+    if (el.dataset.t === 're') el.value = nFmt(re[+el.dataset.p][+el.dataset.c] || 0);
+    else if (bl[el.dataset.b]) el.value = nFmt(bl[el.dataset.b][+el.dataset.c] || 0);
   });
   totales();
   estado('Copiado de ' + lbl(prev), 'ok');
@@ -326,6 +359,7 @@ $('guardar').addEventListener('click', async () => {
   const mes = mesActual, {re, bl} = leer();
   try {
     const filasRE = re.map((p,i) => ({month:mes, prop:i, renta:p[0], cuota:p[1], ibi:p[2], otros:p[3], valor:p[4], hipoteca:p[5]}));
+    await api('/api/data', {method:'PUT', body: JSON.stringify({meta:{lifestyle_cost: String(nParse($('vida').value) || 100000)}})});
     let r = await api('/api/realestate', {method:'PUT', body: JSON.stringify({rows: filasRE})});
     if (!r.ok) throw new Error('re');
     for (const b of Object.keys(COLS)) {
