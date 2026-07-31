@@ -414,7 +414,7 @@ function graficos() {
           borderColor: css('--mute'), borderWidth: 1.5, borderDash:[5,4], pointRadius: 0, tension: .3 },
       ] },
     options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      scales:{ x:axis.x, y:{...axis.y, ticks:{callback:v => Math.round(v) + ' €'}} },
+      scales:{ x:axis.x, y:{...axis.y, ticks:{callback:v => nFmt(Math.round(v)) + ' €'}} },
       plugins:{legend, tooltip:tip} },
   });
 }

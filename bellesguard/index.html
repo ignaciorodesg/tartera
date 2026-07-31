@@ -479,7 +479,7 @@ function renderCharts() {
   const axis = {
     x: { grid: { display: false }, border: { color: css('--line') }, ticks: { maxTicksLimit: 9, autoSkip: true } },
     y: { grid: { color: css('--line') }, border: { display: false },
-         ticks: { callback: (v) => v >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + 'M' : Math.round(v / 1e3) + 'k' } },
+         ticks: { callback: (v) => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + 'M' : Math.round(v / 1e3) + 'k' } },
   };
   const tooltip = {
     backgroundColor: css('--ink'), titleColor: css('--cream'), bodyColor: css('--cream'),
