@@ -182,7 +182,7 @@ del recibo y la duración de la cobertura.</div></div>
 <div class="rule">PÓLIZAS</div>
 <section><div class="card"><div style="overflow-x:auto"><table>
   <thead><tr><th>Fecha</th><th>Concepto</th><th>Asegurado</th><th>Banco</th><th>Periodicidad</th>
-    <th>Cobertura</th><th>Importe</th><th>Estado</th><th></th></tr></thead>
+    <th>Importe</th><th>Estado</th><th></th></tr></thead>
   <tbody id="tabla"></tbody><tfoot id="pie"></tfoot>
 </table></div></div></section>
 
@@ -265,13 +265,12 @@ function pintar() {
       ${c('asegurado', p.asegurado || '—')}
       ${c('banco', p.banco || '—')}
       ${c('periodicidad', p.periodicidad || '—')}
-      ${c('meses', (p.meses ?? 12) + ' meses', 'num')}
       ${c('importe', eur(p.importe), 'num')}
       <td><span class="badge ${v.cls}">${v.txt}</span></td>
       <td><button class="btn mini" data-borrar="${p.id}">Borrar</button></td></tr>`;
   }).join('');
 
-  $('pie').innerHTML = `<tr><td colspan="6">Vigentes</td><td>${eur(anual)}</td><td colspan="2"></td></tr>`;
+  $('pie').innerHTML = `<tr><td colspan="5">Vigentes</td><td>${eur(anual)}</td><td colspan="2"></td></tr>`;
   $('foot').textContent = POLIZAS.length + ' pólizas';
 }
 
