@@ -214,12 +214,27 @@ async function cargar() {
       BL[b][r.month][r.col] = Number(r.value);
     }
   }
+  // El ancla es el último mes REAL, no la última fila: a partir de 2026-08 son proyecciones.
+  let ultimo = null;
+  try {
+    const meta = await (await api('/api/data')).json();
+    ultimo = meta.meta && meta.meta.current_month;
+    if (!ultimo) {
+      const reales = (meta.series||[]).filter(s => s.is_actual).map(s => s.month).sort();
+      ultimo = reales[reales.length-1];
+    }
+  } catch (e) { /* seguimos con el respaldo de abajo */ }
   const meses = [...new Set([...Object.keys(RE), ...Object.keys(BL.patrimonial||{})])].sort();
-  const ultimo = meses[meses.length-1];
-  // Ofrecemos los 6 últimos y los 3 siguientes, por si abre un mes nuevo
-  const opciones = meses.slice(-6);
+  if (!ultimo) ultimo = meses[meses.length-1];
+
+  // Cinco meses anteriores, el actual, y tres por delante para abrir uno nuevo
+  const opciones = [];
   let [y,m] = ultimo.split('-').map(Number);
-  for (let i=0;i<3;i++){ m++; if(m>12){m=1;y++;} opciones.push(`${y}-${String(m).padStart(2,'0')}`); }
+  m -= 5; while (m < 1) { m += 12; y--; }
+  for (let i=0;i<9;i++){
+    opciones.push(`${y}-${String(m).padStart(2,'0')}`);
+    m++; if (m>12){ m=1; y++; }
+  }
   $('mes').innerHTML = opciones.map(x=>`<option value="${x}"${x===ultimo?' selected':''}>${lbl(x)}</option>`).join('');
   mesActual = ultimo;
   estado('');
