@@ -45,6 +45,27 @@
   nav{display:flex;justify-content:space-between;align-items:center;padding:22px 44px;max-width:1180px;margin:0 auto;}
   .logo{font-size:13px;letter-spacing:0.12em;font-weight:500;}
   .logo span{color:var(--ink-mute);}
+
+  /* --- Árbol de navegación --- */
+  .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
+  aside{position:sticky;top:96px;align-self:start;}
+  .tree{font-size:12.5px;line-height:1.9;}
+  .tree a{display:block;color:var(--ink-soft);padding:1px 0;}
+  .tree a:hover{color:var(--mint);}
+  .tree a.on{color:var(--mint);font-weight:500;}
+  .tree a.dash{font-weight:500;color:var(--ink);margin-bottom:4px;}
+  .tree .sub{padding-left:16px;position:relative;}
+  .tree .sub::before{content:'└';position:absolute;left:4px;color:var(--line);}
+  .tree .grp{font-size:9.5px;letter-spacing:.14em;color:var(--ink-mute);margin:18px 0 6px;}
+  main.col{min-width:0;}
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;gap:0;padding-left:22px;padding-right:22px;}
+    aside{position:static;margin-bottom:28px;}
+    .tree{display:flex;flex-wrap:wrap;gap:6px 16px;}
+    .tree .grp{width:100%;margin:8px 0 0;}
+    .tree .sub{padding-left:0;} .tree .sub::before{content:'';}
+  }
+
   .nav-actions{display:flex;gap:20px;align-items:center;font-size:11px;letter-spacing:0.06em;color:var(--ink-mute);}
   .nav-actions button{background:none;border:none;font-family:inherit;font-size:11px;letter-spacing:0.06em;color:var(--ink-mute);cursor:pointer;padding:0;}
   .nav-actions button:hover{color:var(--mint);}
@@ -170,7 +191,25 @@
     </nav>
   </header>
 
-  <main class="wrap">
+  <div class="layout">
+    <aside>
+      <div class="tree">
+        <a href="./" class="dash on">Dashboard</a>
+        <div class="grp">BLOQUES</div>
+        <a href="./real-estate.html">1. Real Estate</a>
+        <a href="./tartera.html" class="sub">1.1 Tartera</a>
+        <a href="./patrimonial.html">2. Patrimonial</a>
+        <a href="./caja.html">3. Caja</a>
+        <a href="./activos.html">4. Activos</a>
+        <a href="./deuda.html">5. Deuda</a>
+        <div class="grp">PERSONAL</div>
+        <a href="./familia.html">6. Familia y seguros</a>
+        <a href="./memento.html">Memento Mori</a>
+        <a href="./accesos.html">Accesos</a>
+      </div>
+    </aside>
+
+  <main class="col">
     <section class="hero">
       <div class="eyebrow">PATRIMONIO NETO</div>
       <div class="big num" id="netBig">—</div>
@@ -256,6 +295,7 @@
       <section><div class="card"><div class="note" id="noteBody"></div><div class="note-meta" id="noteMeta"></div></div></section>
     </div>
   </main>
+  </div>
 
   <footer class="wrap">
     <span>Fuente: Wealth OS</span>
