@@ -26,6 +26,10 @@
   .crumb b{color:var(--mint);font-weight:500;}
 
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;}
+  /* Sin esto, la columna 1fr crece con la tabla en vez de dejar que el contenedor
+     haga scroll: al plegar las columnas la tabla no recuperaba su ancho. */
+  .layout > main{min-width:0;}
+  .layout > main [style*='overflow-x']{max-width:100%;}
   aside{position:sticky;top:96px;align-self:start;}
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--soft);padding:1px 0;}
@@ -157,7 +161,7 @@
       <a href="/bellesguard/real-estate.html">1. Real Estate</a>
       <a href="/bellesguard/tartera.html" class="sub">1.1 Tartera</a>
       <a href="/bellesguard/patrimonial.html">2. Financiero</a>
-      <a href="/bellesguard/caja.html">3. Caja</a>
+      <a href="/bellesguard/caja.html">3. Caja personal</a>
       <a href="/bellesguard/activos.html">4. Activos</a>
       <a href="/bellesguard/deuda.html">5. Deuda</a>
       <div class="grp">PERSONAL</div>

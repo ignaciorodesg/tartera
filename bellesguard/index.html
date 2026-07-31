@@ -48,6 +48,7 @@
 
   /* --- Árbol de navegación --- */
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
+  .layout > main{min-width:0;}
   aside{position:sticky;top:96px;align-self:start;}
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--ink-soft);padding:1px 0;}
@@ -202,7 +203,7 @@
         <a href="/bellesguard/real-estate.html">1. Real Estate</a>
         <a href="/bellesguard/tartera.html" class="sub">1.1 Tartera</a>
         <a href="/bellesguard/patrimonial.html">2. Financiero</a>
-        <a href="/bellesguard/caja.html">3. Caja</a>
+        <a href="/bellesguard/caja.html">3. Caja personal</a>
         <a href="/bellesguard/activos.html">4. Activos</a>
         <a href="/bellesguard/deuda.html">5. Deuda</a>
         <div class="grp">PERSONAL</div>
@@ -223,7 +224,7 @@
     <div class="kpis">
       <div class="kpi"><div class="kpi-label">ACTIVOS BRUTOS</div><div class="kpi-value num" id="kGross">—</div><div class="kpi-sub">Valor de mercado total</div></div>
       <div class="kpi"><div class="kpi-label">PASIVO</div><div class="kpi-value num" id="kDebt">—</div><div class="kpi-sub">Apalancamiento <span id="kLtv"></span></div></div>
-      <div class="kpi"><div class="kpi-label">LIQUIDEZ</div><div class="kpi-value num" id="kLiq">—</div><div class="kpi-sub">Caja + inv. financieras</div></div>
+      <div class="kpi"><div class="kpi-label">LIQUIDEZ</div><div class="kpi-value num" id="kLiq">—</div><div class="kpi-sub">Caja personal + inv. financieras</div></div>
       <div class="kpi"><div class="kpi-label">COBERTURA</div><div class="kpi-value num" id="kRun">—</div><div class="kpi-sub" id="kRunSub">Al coste de vida actual</div></div>
     </div>
 
@@ -429,7 +430,7 @@ function renderAlloc(cur) {
     { n: 'Real Estate', v: cur.real_estate, c: css('--mint') },
     { n: 'Empresas', v: cur.empresas, c: css('--ink') },
     { n: 'Inv. financieras', v: cur.inv_fin, c: css('--ink-mute') },
-    { n: 'Caja', v: cur.caja, c: css('--mint-soft') },
+    { n: 'Caja personal', v: cur.caja, c: css('--mint-soft') },
     { n: 'Activos físicos', v: cur.activos, c: css('--line') },
   ].filter((i) => i.v > 0).sort((a, b) => b.v - a.v);
   const tot = items.reduce((s, i) => s + i.v, 0) || 1;
@@ -509,7 +510,7 @@ function renderCharts() {
     { label: 'Real Estate', k: 'real_estate', c: css('--mint') },
     { label: 'Empresas', k: 'empresas', c: css('--ink') },
     { label: 'Inv. financieras', k: 'inv_fin', c: css('--ink-mute') },
-    { label: 'Caja', k: 'caja', c: css('--mint-soft') },
+    { label: 'Caja personal', k: 'caja', c: css('--mint-soft') },
     { label: 'Activos físicos', k: 'activos', c: css('--line') },
   ];
   charts.comp?.destroy();

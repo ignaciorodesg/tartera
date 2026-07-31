@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow"><title>Caja · Bellesguard</title>
+<meta name="robots" content="noindex, nofollow"><title>Caja personal · Bellesguard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -27,6 +27,10 @@
   .crumb b{color:var(--mint);font-weight:500;}
 
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;}
+  /* Sin esto, la columna 1fr crece con la tabla en vez de dejar que el contenedor
+     haga scroll: al plegar las columnas la tabla no recuperaba su ancho. */
+  .layout > main{min-width:0;}
+  .layout > main [style*='overflow-x']{max-width:100%;}
   aside{position:sticky;top:96px;align-self:start;}
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--soft);padding:1px 0;}
@@ -130,7 +134,7 @@
   .tree a.entrada{color:var(--mint);font-weight:500;}
 </style></head><body>
 <header><nav><span class="logo">TARTERA <span>· BELLESGUARD</span></span>
-<span class="crumb">3. CAJA · <b id="asof"></b></span></nav></header>
+<span class="crumb">3. CAJA PERSONAL · <b id="asof"></b></span></nav></header>
 <div class="wrap layout"><aside><div class="tree">
       <a href="/bellesguard/" class="dash">Dashboard</a>
       <a href="/bellesguard/cierre.html" class="entrada">Cierre de mes</a>
@@ -138,7 +142,7 @@
       <a href="/bellesguard/real-estate.html">1. Real Estate</a>
       <a href="/bellesguard/tartera.html" class="sub">1.1 Tartera</a>
       <a href="/bellesguard/patrimonial.html">2. Financiero</a>
-      <a href="/bellesguard/caja.html" class="on">3. Caja</a>
+      <a href="/bellesguard/caja.html" class="on">3. Caja personal</a>
       <a href="/bellesguard/activos.html">4. Activos</a>
       <a href="/bellesguard/deuda.html">5. Deuda</a>
       <div class="grp">PERSONAL</div>
@@ -147,7 +151,7 @@
       <div class="grp">CONFIGURACIÓN</div>
       <a href="/bellesguard/bancos.html">Bancos</a>
 </div></aside><main>
-<div class="hero"><div class="eyebrow">BLOQUE 3</div><h1>Caja</h1><div class="sub" id="lede"></div></div>
+<div class="hero"><div class="eyebrow">BLOQUE 3</div><h1>Caja personal</h1><div class="sub" id="lede"></div></div>
 <div class="kpis" id="kpis"></div>
 <div class="rule">COMPOSICIÓN</div>
 <section><div class="card"><div class="chartbox"><canvas id="cStack"></canvas></div></div></section>
@@ -161,7 +165,7 @@
     Enter guarda, Escape cancela.<span class="state" id="state"></span></div>
   <div style="overflow-x:auto"><table><thead id="detHead"></thead><tbody id="detBody"></tbody></table></div>
 </div></section>
-<footer><span>Fuente: Wealth OS · hoja 3. CAJA</span><span id="foot"></span></footer>
+<footer><span>Fuente: Wealth OS · hoja 3. CAJA (Caja personal)</span><span id="foot"></span></footer>
 </main></div>
 
 <script>

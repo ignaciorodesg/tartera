@@ -27,6 +27,10 @@
   .crumb b{color:var(--mint);font-weight:500;}
 
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;}
+  /* Sin esto, la columna 1fr crece con la tabla en vez de dejar que el contenedor
+     haga scroll: al plegar las columnas la tabla no recuperaba su ancho. */
+  .layout > main{min-width:0;}
+  .layout > main [style*='overflow-x']{max-width:100%;}
   aside{position:sticky;top:96px;align-self:start;}
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--soft);padding:1px 0;}
@@ -93,6 +97,8 @@
   tr.saved td.ed{animation:flash 1.1s ease-out;}
   th.grp, td.grp{padding-left:14px;}
   td.grp{color:var(--ink);}
+  td.abre{cursor:zoom-in;border-radius:4px;}
+  td.abre:hover{box-shadow:inset 0 0 0 1px var(--mint-soft);background:var(--panel);}
   th.det, td.det{background:rgba(15,110,86,.035);}
   th.det{padding-left:10px;} td.det{padding-left:10px;padding-right:5px;}
   button.mas{font:inherit;font-size:11px;line-height:1;width:15px;height:15px;padding:0;
@@ -146,7 +152,7 @@
       <a href="/bellesguard/real-estate.html">1. Real Estate</a>
       <a href="/bellesguard/tartera.html" class="sub">1.1 Tartera</a>
       <a href="/bellesguard/patrimonial.html" class="on">2. Financiero</a>
-      <a href="/bellesguard/caja.html">3. Caja</a>
+      <a href="/bellesguard/caja.html">3. Caja personal</a>
       <a href="/bellesguard/activos.html">4. Activos</a>
       <a href="/bellesguard/deuda.html">5. Deuda</a>
       <div class="grp">PERSONAL</div>
@@ -162,7 +168,8 @@
 <div class="rule">DETALLE MENSUAL</div>
 <section><div class="card">
   <div class="hint">Pasa el ratón por una fila y haz clic en cualquier importe para cambiarlo.
-    Enter guarda, Escape cancela.<span class="state" id="state"></span></div>
+    Enter guarda, Escape cancela. Las columnas que son suma de varias (Líquido, Inv. financieras,
+    Alternativo) se despliegan al hacer clic y se editan por dentro.<span class="state" id="state"></span></div>
   <div style="overflow-x:auto"><table><thead id="detHead"></thead><tbody id="detBody"></tbody></table></div>
 </div></section>
 <footer><span>Fuente: Wealth OS · hoja 2. PATRIMONIAL (Financiero)</span><span id="foot"></span></footer>
@@ -342,21 +349,28 @@ function detalle() {
         return `<td class="ed det" data-mes="${r[0]}" data-col="${c.i}">${r[1][c.i] ? eur(r[1][c.i]) : '—'}</td>`;
       }
       const v = suma(r, c.idxs);
-      // Un grupo de una sola columna se puede editar tal cual; una suma, no.
+      // Un grupo de una sola columna se edita tal cual. Una suma no se puede escribir
+      // sin inventarse un reparto: al hacer clic se despliega y se editan sus columnas.
       return c.solo === null
-        ? `<td class="grp">${v ? eur(v) : '—'}</td>`
+        ? `<td class="grp abre" data-g="${c.nombre}" title="Ver el detalle para editarlo">${v ? eur(v) : '—'}</td>`
         : `<td class="ed grp" data-mes="${r[0]}" data-col="${c.solo}">${v ? eur(v) : '—'}</td>`;
     }).join('');
     return `<tr data-mes="${r[0]}"><td class="n">${lbl(r[0])}</td>${celdas}<td class="n">${eur(suma(r, TODAS))}</td></tr>`;
   }).join('');
 }
 
-$('detHead').addEventListener('click', e => {
-  const b = e.target.closest('button.mas');
-  if (!b) return;
-  const g = b.dataset.g;
+function alternar(g) {
   abiertos.has(g) ? abiertos.delete(g) : abiertos.add(g);
   detalle();
+}
+$('detHead').addEventListener('click', e => {
+  const b = e.target.closest('button.mas');
+  if (b) alternar(b.dataset.g);
+});
+// Clic en una celda agregada: se abre el grupo y ya se editan sus columnas
+$('detBody').addEventListener('click', e => {
+  const td = e.target.closest('td.abre');
+  if (td) alternar(td.dataset.g);
 });
 
 $('detBody').addEventListener('click', e => {
