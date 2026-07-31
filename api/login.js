@@ -20,7 +20,7 @@ export default async function handler(request) {
 
   const [row] = await sql`
     SELECT fails, EXTRACT(EPOCH FROM (now() - last_try)) / 60 AS mins
-    FROM login_attempts WHERE ip = ${ip}`;
+    FROM bellesguard.login_attempts WHERE ip = ${ip}`;
 
   if (row && row.fails >= MAX_FAILS && row.mins < LOCK_MIN) {
     return json({ error: 'locked', retry_in_min: Math.ceil(LOCK_MIN - row.mins) }, 429);
@@ -36,13 +36,13 @@ export default async function handler(request) {
   if (!(await checkPassword(password, env.APP_PASSWORD))) {
     const fails = row && row.mins < LOCK_MIN ? Number(row.fails) + 1 : 1;
     await sql`
-      INSERT INTO login_attempts (ip, fails, last_try) VALUES (${ip}, ${fails}, now())
+      INSERT INTO bellesguard.login_attempts (ip, fails, last_try) VALUES (${ip}, ${fails}, now())
       ON CONFLICT (ip) DO UPDATE SET fails = ${fails}, last_try = now()`;
     // Retraso fijo, no depende de la contraseña: no filtra nada por tiempo.
     await new Promise((r) => setTimeout(r, 400));
     return json({ error: 'bad_password', left: Math.max(0, MAX_FAILS - fails) }, 401);
   }
 
-  await sql`DELETE FROM login_attempts WHERE ip = ${ip}`;
+  await sql`DELETE FROM bellesguard.login_attempts WHERE ip = ${ip}`;
   return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(await createSession(env)) });
 }

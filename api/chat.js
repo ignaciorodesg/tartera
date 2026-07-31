@@ -57,9 +57,9 @@ export default async function handler(request) {
 
   const [rows, properties, metaRows] = await Promise.all([
     sql`SELECT month, net, real_estate, patrimonial, empresas, inv_fin, caja, activos, debt, is_actual
-        FROM series ORDER BY month`,
-    sql`SELECT name, use_type, value, debt FROM properties ORDER BY sort, id`,
-    sql`SELECT key, value FROM meta`,
+        FROM bellesguard.series ORDER BY month`,
+    sql`SELECT name, use_type, value, debt FROM bellesguard.properties ORDER BY sort, id`,
+    sql`SELECT key, value FROM bellesguard.meta`,
   ]);
 
   const meta = Object.fromEntries(metaRows.map((r) => [r.key, r.value]));

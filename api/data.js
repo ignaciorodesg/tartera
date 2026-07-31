@@ -22,10 +22,10 @@ export default async function handler(request) {
 async function read() {
   const [series, properties, meta, notes] = await Promise.all([
     sql`SELECT month, net, real_estate, patrimonial, empresas, inv_fin, caja, activos, debt, is_actual
-        FROM series ORDER BY month`,
-    sql`SELECT id, name, use_type, value, debt FROM properties ORDER BY sort, id`,
-    sql`SELECT key, value FROM meta`,
-    sql`SELECT month, body, source, created_at FROM notes ORDER BY month DESC LIMIT 24`,
+        FROM bellesguard.series ORDER BY month`,
+    sql`SELECT id, name, use_type, value, debt FROM bellesguard.properties ORDER BY sort, id`,
+    sql`SELECT key, value FROM bellesguard.meta`,
+    sql`SELECT month, body, source, created_at FROM bellesguard.notes ORDER BY month DESC LIMIT 24`,
   ]);
 
   return json({
@@ -52,7 +52,7 @@ async function write(request) {
 
   for (const r of body.series || []) {
     await sql`
-      INSERT INTO series (month, net, real_estate, patrimonial, empresas, inv_fin, caja, activos, debt, is_actual, updated_at)
+      INSERT INTO bellesguard.series (month, net, real_estate, patrimonial, empresas, inv_fin, caja, activos, debt, is_actual, updated_at)
       VALUES (${r.month}, ${num(r.net)}, ${num(r.real_estate)}, ${num(r.patrimonial)}, ${num(r.empresas)},
               ${num(r.inv_fin)}, ${num(r.caja)}, ${num(r.activos)}, ${num(r.debt)}, ${!!r.is_actual}, now())
       ON CONFLICT (month) DO UPDATE SET
@@ -67,19 +67,19 @@ async function write(request) {
     const name = String(p.name || '').slice(0, 80);
     const use = String(p.use_type || '').slice(0, 60);
     if (p.deleted && p.id) {
-      await sql`DELETE FROM properties WHERE id = ${p.id}`;
+      await sql`DELETE FROM bellesguard.properties WHERE id = ${p.id}`;
     } else if (p.id) {
-      await sql`UPDATE properties SET name = ${name}, use_type = ${use},
+      await sql`UPDATE bellesguard.properties SET name = ${name}, use_type = ${use},
                 value = ${num(p.value)}, debt = ${num(p.debt)}, updated_at = now() WHERE id = ${p.id}`;
     } else {
-      await sql`INSERT INTO properties (name, use_type, value, debt, sort)
+      await sql`INSERT INTO bellesguard.properties (name, use_type, value, debt, sort)
                 VALUES (${name}, ${use}, ${num(p.value)}, ${num(p.debt)}, ${p.sort || 99})`;
     }
     written++;
   }
 
   for (const [k, v] of Object.entries(body.meta || {})) {
-    await sql`INSERT INTO meta (key, value) VALUES (${String(k).slice(0, 60)}, ${String(v).slice(0, 500)})
+    await sql`INSERT INTO bellesguard.meta (key, value) VALUES (${String(k).slice(0, 60)}, ${String(v).slice(0, 500)})
               ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
     written++;
   }
