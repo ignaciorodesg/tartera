@@ -171,10 +171,6 @@ del recibo y la duración de la cobertura.</div></div>
     <div class="campo"><label>ASEGURADO</label><input id="n-asegurado" placeholder="Mandri 29"></div>
     <div class="campo"><label>IMPORTE</label><input id="n-importe" inputmode="decimal" placeholder="-300"></div>
     <div class="campo"><label>BANCO</label><input id="n-banco" placeholder="BK"></div>
-    <div class="campo"><label>PERIODICIDAD</label><select id="n-periodicidad">
-      <option>Anual</option><option>Semestral</option><option>Trimestral</option><option>Mensual</option><option>Único</option>
-    </select></div>
-    <div class="campo"><label>COBERTURA (MESES)</label><input id="n-meses" inputmode="numeric" value="12"></div>
   </div>
   <button class="btn" id="anadir">AÑADIR PÓLIZA</button>
   <span class="state" id="state"></span>
@@ -283,14 +279,11 @@ $('anadir').addEventListener('click', async () => {
     const r = await api('/api/seguros', {method:'POST', body: JSON.stringify({
       fecha: $('n-fecha').value, concepto,
       asegurado: $('n-asegurado').value, banco: $('n-banco').value,
-      periodicidad: $('n-periodicidad').value,
-      importe: parseFloat(($('n-importe').value||'0').replace(',','.')) || 0,
-      meses: parseInt($('n-meses').value,10) || 12
+      importe: parseFloat(($('n-importe').value||'0').replace(',','.')) || 0
     })});
     if (!r.ok) throw new Error('alta');
     POLIZAS = (await (await api('/api/seguros')).json()).rows;
     ['n-concepto','n-asegurado','n-banco','n-importe'].forEach(i => $(i).value = '');
-    $('n-meses').value = 12;
     pintar(); estado('Póliza añadida', 'ok');
   } catch (e) { estado('No se pudo añadir', 'err'); }
   btn.disabled = false;
