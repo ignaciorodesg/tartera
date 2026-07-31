@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow"><title>Seguros · Bellesguard</title>
+<meta name="robots" content="noindex, nofollow"><title>Bancos · Bellesguard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -113,34 +113,41 @@
   .tree a.entrada{color:var(--mint);font-weight:500;}
 
   .tree a.entrada{color:var(--mint);font-weight:500;}
-  .badge{display:inline-block;font-size:9.5px;letter-spacing:.06em;padding:3px 9px;border-radius:10px;
-    border:.5px solid var(--line);color:var(--mute);white-space:nowrap;}
-  .badge.ok{border-color:var(--mint-soft);color:var(--mint);background:rgba(127,203,164,.10);}
-  .badge.pronto{border-color:#D9A441;color:#8A6516;background:rgba(217,164,65,.10);}
+  .fichas{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+  .banco{background:var(--panel);border:.5px solid var(--line);border-radius:10px;padding:20px;}
+  .banco .cab{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .banco .logo{width:42px;height:42px;border-radius:8px;border:.5px solid var(--line);
+    object-fit:contain;background:#fff;padding:4px;flex-shrink:0;}
+  .banco .logo.vacio{display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',Georgia,serif;font-size:15px;color:var(--mute);}
+  .banco h3{font-family:'Fraunces',Georgia,serif;font-size:17px;line-height:1.2;}
+  .banco .cod{font-size:10px;letter-spacing:.1em;color:var(--mute);}
+  .banco dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13px;}
+  .banco dt{color:var(--mute);white-space:nowrap;}
+  .banco dd{text-align:right;color:var(--soft);word-break:break-word;}
+  .banco dd.ed{cursor:text;border-radius:4px;padding:1px 4px;margin:-1px -4px;}
+  .banco dd.ed:hover{box-shadow:inset 0 0 0 1px var(--mint-soft);background:var(--cream);}
+  .banco dd input{width:100%;padding:3px 6px;border:1px solid var(--mint);border-radius:4px;
+    background:var(--panel);font-family:inherit;font-size:13px;text-align:right;color:var(--ink);}
+  .banco .pie{margin-top:16px;padding-top:13px;border-top:.5px solid var(--line);
+    display:flex;justify-content:flex-end;}
   .alta{background:var(--panel);border:.5px solid var(--line);border-radius:10px;padding:20px;margin-bottom:22px;}
-  .alta h3{font-family:'Fraunces',Georgia,serif;font-size:16px;margin-bottom:14px;}
-  .campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px;}
+  .campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:14px;}
   .campo label{display:block;font-size:10px;letter-spacing:.08em;color:var(--mute);margin-bottom:5px;}
-  .campo input,.campo select{width:100%;padding:8px 10px;border:.5px solid var(--line);border-radius:6px;
+  .campo input{width:100%;padding:8px 10px;border:.5px solid var(--line);border-radius:6px;
     background:var(--cream);font-family:inherit;font-size:13.5px;color:var(--ink);}
-  .campo input:focus,.campo select:focus{outline:none;border-color:var(--mint);background:var(--panel);}
+  .campo input:focus{outline:none;border-color:var(--mint);background:var(--panel);}
   .btn{padding:9px 20px;border:1px solid var(--mint);background:var(--mint);color:#fff;font-family:inherit;
     font-size:11px;letter-spacing:.1em;border-radius:5px;cursor:pointer;}
-  .btn.ghost{background:none;color:var(--mint);}
   .btn:disabled{opacity:.45;cursor:default;}
   .btn.mini{padding:4px 10px;font-size:10px;border-color:var(--line);color:var(--mute);background:none;}
   .btn.mini:hover{border-color:var(--red);color:var(--red);}
   .state{font-size:12px;color:var(--mute);margin-left:12px;}
   .state.err{color:var(--red);} .state.ok{color:var(--mint);}
-  td.ed{cursor:text;border-radius:4px;}
-  tbody tr:hover td.ed{box-shadow:inset 0 0 0 .5px var(--line);}
-  td.ed:hover{box-shadow:inset 0 0 0 1px var(--mint-soft) !important;background:var(--panel);}
-  td.ed input{width:100%;min-width:80px;padding:4px 6px;border:1px solid var(--mint);border-radius:4px;
-    background:var(--panel);font-family:inherit;font-size:13px;color:var(--ink);}
-  tbody tr:hover{background:#F7F6F1;}
+  .vacio{text-align:center;padding:36px;color:var(--mute);font-size:13px;line-height:1.7;}
 </style></head><body>
 <header><nav><span class="logo">TARTERA <span>· BELLESGUARD</span></span>
-<span class="crumb">SEGUROS</span></nav></header>
+<span class="crumb">CONFIGURACIÓN · BANCOS</span></nav></header>
 <div class="wrap layout"><aside><div class="tree">
       <a href="/bellesguard/" class="dash">Dashboard</a>
       <a href="/bellesguard/cierre.html" class="entrada">Cierre de mes</a>
@@ -152,52 +159,53 @@
       <a href="/bellesguard/activos.html">4. Activos</a>
       <a href="/bellesguard/deuda.html">5. Deuda</a>
       <div class="grp">PERSONAL</div>
-      <a href="/bellesguard/familia.html" class="on">Seguros</a>
+      <a href="/bellesguard/familia.html">Seguros</a>
       <a href="/bellesguard/memento.html">Memento Mori</a>
       <div class="grp">CONFIGURACIÓN</div>
-      <a href="/bellesguard/bancos.html">Bancos</a>
+      <a href="/bellesguard/bancos.html" class="on">Bancos</a>
 </div></aside><main>
-<div class="hero"><div class="eyebrow">PERSONAL</div><h1>Seguros</h1>
-<div class="sub" id="lede">Pólizas y recibos recurrentes. La vigencia se calcula sola desde la fecha
-del recibo y la duración de la cobertura.</div></div>
+<div class="hero"><div class="eyebrow">CONFIGURACIÓN</div><h1>Bancos</h1>
+<div class="sub">Ficha de cada entidad: cuenta, sucursal, persona de contacto y logo.
+El código corto es el que enlaza con el resto de páginas — es el que ya usas en Seguros (BK, BS, KB).</div></div>
 
 <div class="kpis" id="kpis"></div>
 
-<div class="rule">NUEVA PÓLIZA</div>
+<div class="rule">NUEVA ENTIDAD</div>
 <section><div class="alta">
   <div class="campos">
-    <div class="campo"><label>FECHA</label><input type="date" id="n-fecha"></div>
-    <div class="campo" style="grid-column:span 2"><label>CONCEPTO</label><input id="n-concepto" placeholder="RECIBO ... SEGUROS"></div>
-    <div class="campo"><label>ASEGURADO</label><input id="n-asegurado" placeholder="Mandri 29"></div>
-    <div class="campo"><label>IMPORTE</label><input id="n-importe" inputmode="decimal" placeholder="-300"></div>
-    <div class="campo"><label>BANCO</label><input id="n-banco" placeholder="BK"></div>
-    <div class="campo"><label>PERIODICIDAD</label><select id="n-periodicidad">
-      <option>Anual</option><option>Semestral</option><option>Trimestral</option><option>Mensual</option><option>Único</option>
-    </select></div>
-    <div class="campo"><label>COBERTURA (MESES)</label><input id="n-meses" inputmode="numeric" value="12"></div>
+    <div class="campo"><label>CÓDIGO</label><input id="n-codigo" placeholder="BK" maxlength="10"></div>
+    <div class="campo" style="grid-column:span 2"><label>NOMBRE</label><input id="n-nombre" placeholder="Bankinter"></div>
+    <div class="campo"><label>CUENTA</label><input id="n-cuenta" placeholder="**22"></div>
+    <div class="campo" style="grid-column:span 2"><label>SUCURSAL</label><input id="n-sucursal" placeholder="Diagonal 640, Barcelona"></div>
+    <div class="campo"><label>RESPONSABLE</label><input id="n-responsable" placeholder="Nombre del gestor"></div>
+    <div class="campo"><label>TELÉFONO</label><input id="n-telefono" placeholder="+34 ..."></div>
+    <div class="campo"><label>EMAIL</label><input id="n-email" placeholder="gestor@banco.es"></div>
+    <div class="campo" style="grid-column:span 2"><label>LOGO (URL HTTPS)</label><input id="n-logo" placeholder="https://..."></div>
   </div>
-  <button class="btn" id="anadir">AÑADIR PÓLIZA</button>
+  <button class="btn" id="anadir">AÑADIR ENTIDAD</button>
   <span class="state" id="state"></span>
 </div></section>
 
-<div class="rule">PÓLIZAS</div>
-<section><div class="card"><div style="overflow-x:auto"><table>
-  <thead><tr><th>Fecha</th><th>Concepto</th><th>Asegurado</th><th>Banco</th>
-    <th>Importe</th><th>Estado</th><th></th></tr></thead>
-  <tbody id="tabla"></tbody><tfoot id="pie"></tfoot>
-</table></div></div></section>
+<div class="rule">ENTIDADES</div>
+<section><div class="fichas" id="fichas"></div>
+  <div class="vacio" id="vacio" style="display:none">
+    Todavía no hay entidades. Añade la primera arriba.
+  </div>
+</section>
 
-<footer><span>Bellesguard · seguros</span><span id="foot"></span></footer>
+<footer><span>Bellesguard · configuración</span><span id="foot"></span></footer>
 </main></div>
 
 <script>
 'use strict';
-const SEMILLA = [["06/09/2019", "RECIBO LIBERTY SEGUROS C", -212.97, "", "", "", "AGOTADO"], ["09/09/2020", "RECIBO LIBERTY SEGUROS C", -219.85, "", "", "", "AGOTADO"], ["2021-09-10", "RECIBO LIBERTY SEGUROS C", -230.39, "KB", "Anual", "Honda Vision 110", "AGOTADO"], ["2021-11-15", "RECIBO VERTI SEGUROS", -178.0, "BS", "Anual", "Suzuki Vitara JLX", "AGOTADO"], ["2021-11-15", "RECIBO PLUS ULTRA SEGUROS", -456.25, "BK", "Anual", "Hogar Bellesguard 47", "AGOTADO"], ["2022-01-13", "SEGURO MGS SEGUROS MULTIMOTO ECO 12339895", -99.0, "BS", "Anual", "Silence S01", "AGOTADO"], ["2022-09-10", "RECIBO VERTI", -100.0, "BK", "Anual", "Honda Vision 110", "AGOTADO"], ["2022-11-14", "RECIBO KUTXABANK SEGURO HOGAR", -300.84, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2022-11-14", "RECIBO KUTXABANK SEGURO VIDA NACHO", -228.58, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2022-11-15", "RECIBO PLUS ULTRA SEGUROS", -475.43, "BK", "Anual", "Bellesguard 47", "AGOTADO"], ["2022-11-23", "RECIBO VERTI SEGUROS", 187.77, "BS", "Anual", "Suzuki Vitara JLX", "AGOTADO"], ["2022-11-24", "RECIBO BANKINTER SEGUROS DE VIDA", -301.49, "BK", "Anual", "Bellesguard 47", "AGOTADO"], ["2022-11-14", "RECIBO KUTXABANK SEGURO VIDA YVONNE", -187.03, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2023-01-18", "SEGURO VERTI PÓLIZA 84038358", -123.43, "BS", "Anual", "Silence S01", "AGOTADO"], ["2023-09-10", "RECIBO VERTI", -122.0, "BK", "Anual", "Honda Vision 110", "AGOTADO"], ["2023-11-14", "RECIBO KUTXABANK SEGURO HOGAR", -300.84, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2023-11-14", "RECIBO KUTXABANK SEGURO VIDA NACHO", -228.58, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2023-11-14", "RECIBO KUTXABANK SEGURO VIDA YVONNE", -187.03, "KB", "Anual", "Mandri 29", "AGOTADO"], ["2023-11-15", "RECIBO PLUS ULTRA SEGUROS", -518.81, "BK", "Anual", "Bellesguard 47", "RECHAZADO"], ["2023-11-17", "RECIBO VERTI SEGUROS", -188.0, "BS", "Anual", "Suzuki Vitara JLX", "AGOTADO"], ["2023-11-23", "RECIBO BANKINTER SEGUROS DE VIDA", -328.65, "BK", "Anual", "Bellesguard 47", "AGOTADO"], ["2024-02-01", "QUALITAS AUTO", -190.93, "BK IRODES", "Anual", "Silence S01", "AGOTADO"], ["2024-09-10", "RECIBO VERTI", -142.88, "BK", "Anual", "Honda Vision 110", "AGOTADO"], ["2024-11-19", "RECIBO VERTI SEGUROS", -188.0, "BK", "Anual", "Suzuki Vitara JLX", "EN CURSO"], ["2025-02-17", "QUALITAS AUTO 2024/5244820", -201.0, "BK IRODES", "Anual", "Silence S01", "EN CURSO"], ["2025-08-20", "QUALITAS AUTO 2024/5333036", -189.78, "BK", "Anual", "Husqvarna TE 250", "EN CURSO"], ["2024-09-10", "RECIBO VERTI", -142.88, "BK", "Anual", "Honda Vision 110", "EN CURSO"]];
-
 const $ = id => document.getElementById(id);
-const eur = (n,d=2) => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:d,maximumFractionDigits:d}).format(n||0);
-const hoy = new Date();
-let POLIZAS = [];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let BANCOS = [];
+
+const CAMPOS = [
+  ['cuenta','Cuenta'], ['sucursal','Sucursal'], ['responsable','Responsable'],
+  ['telefono','Teléfono'], ['email','Email'], ['notas','Notas'], ['logo','Logo']
+];
 
 async function api(p, o) {
   const r = await fetch(p, {credentials:'same-origin', headers:{'Content-Type':'application/json'}, ...(o||{})});
@@ -207,136 +215,99 @@ async function api(p, o) {
 function estado(t, cls) { const e=$('state'); e.textContent=t||''; e.className='state'+(cls?' '+cls:'');
   if (t && cls==='ok') setTimeout(()=>{ if(e.textContent===t) e.textContent=''; }, 2600); }
 
-// Vigencia: fecha del recibo + meses de cobertura contra hoy
-function vigencia(p) {
-  if (p.estado) return { txt: p.estado.toUpperCase(), cls: p.estado.toUpperCase()==='VIGENTE' ? 'ok' : '' };
-  if (!p.fecha) return { txt: '—', cls: '' };
-  const f = new Date(p.fecha + 'T00:00:00');
-  const fin = new Date(f); fin.setMonth(fin.getMonth() + (p.meses ?? 12));
-  const dias = Math.round((fin - hoy) / 86400000);
-  if (dias < 0) return { txt: 'AGOTADO', cls: '' };
-  if (dias <= 45) return { txt: 'VENCE EN ' + dias + 'D', cls: 'pronto' };
-  return { txt: 'VIGENTE', cls: 'ok' };
-}
-const esVigente = p => vigencia(p).cls !== '';
-
 async function cargar() {
-  try {
-    const d = await (await api('/api/seguros')).json();
-    POLIZAS = d.rows || [];
-    if (!POLIZAS.length && SEMILLA.length) {
-      for (const s of SEMILLA) {
-        const iso = /^\d{2}\/\d{2}\/\d{4}$/.test(s[0])
-          ? s[0].split('/').reverse().join('-')
-          : (/^\d{4}-\d{2}-\d{2}$/.test(s[0]) ? s[0] : '');
-        await api('/api/seguros', {method:'POST', body: JSON.stringify({
-          fecha: iso, concepto: s[1], importe: s[2], banco: s[3],
-          periodicidad: s[4] || 'Anual', asegurado: s[5], meses: 12,
-          estado: (s[6]||'').toUpperCase()==='AGOTADO' ? 'AGOTADO' : ''
-        })});
-      }
-      POLIZAS = (await (await api('/api/seguros')).json()).rows;
-    }
-  } catch (e) { estado('Sin conexión con la base', 'err'); }
+  try { BANCOS = (await (await api('/api/bancos')).json()).rows || []; }
+  catch (e) { estado('Sin conexión con la base', 'err'); }
   pintar();
 }
 
 function pintar() {
-  const vig = POLIZAS.filter(esVigente);
-  const anual = vig.reduce((s,p)=>s+Number(p.importe||0),0);
-  const proximas = POLIZAS.filter(p => vigencia(p).cls === 'pronto');
-
+  const conGestor = BANCOS.filter(b => b.responsable).length;
+  const conLogo = BANCOS.filter(b => b.logo).length;
   $('kpis').innerHTML = `
-    <div class="kpi"><div class="lab">VIGENTES</div><div class="v num">${vig.length}</div>
-      <div class="s">De ${POLIZAS.length} registradas</div></div>
-    <div class="kpi"><div class="lab">COSTE ANUAL</div><div class="v num">${eur(anual,0)}</div>
-      <div class="s">Suma de las vigentes</div></div>
-    <div class="kpi"><div class="lab">MEDIA MENSUAL</div><div class="v num">${eur(anual/12,0)}</div>
-      <div class="s">Prorrateado</div></div>
-    <div class="kpi"><div class="lab">RENUEVAN PRONTO</div><div class="v num">${proximas.length}</div>
-      <div class="s">En menos de 45 días</div></div>`;
+    <div class="kpi"><div class="lab">ENTIDADES</div><div class="v num">${BANCOS.length}</div>
+      <div class="s">Registradas</div></div>
+    <div class="kpi"><div class="lab">CON RESPONSABLE</div><div class="v num">${conGestor}</div>
+      <div class="s">Persona de contacto</div></div>
+    <div class="kpi"><div class="lab">CON LOGO</div><div class="v num">${conLogo}</div>
+      <div class="s">Para el resto de páginas</div></div>`;
 
-  $('tabla').innerHTML = POLIZAS.map(p => {
-    const v = vigencia(p);
-    const c = (campo, valor, tipo) =>
-      `<td class="ed" data-id="${p.id}" data-campo="${campo}" data-tipo="${tipo||'text'}">${valor ?? '—'}</td>`;
-    return `<tr data-id="${p.id}">
-      ${c('fecha', p.fecha || '—', 'date')}
-      ${c('concepto', p.concepto)}
-      ${c('asegurado', p.asegurado || '—')}
-      ${c('banco', p.banco || '—')}
-      ${c('importe', eur(p.importe), 'num')}
-      <td><span class="badge ${v.cls}">${v.txt}</span></td>
-      <td><button class="btn mini" data-borrar="${p.id}">Borrar</button></td></tr>`;
+  $('vacio').style.display = BANCOS.length ? 'none' : '';
+  $('fichas').innerHTML = BANCOS.map(b => {
+    const inicial = esc((b.nombre || '?').trim()[0].toUpperCase());
+    const logo = b.logo
+      ? `<img class="logo" src="${esc(b.logo)}" alt="${esc(b.nombre)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo vacio',textContent:'${inicial}'}))">`
+      : `<div class="logo vacio">${inicial}</div>`;
+    return `<div class="banco" data-id="${b.id}">
+      <div class="cab">${logo}
+        <div><h3 class="ed" data-id="${b.id}" data-campo="nombre">${esc(b.nombre)}</h3>
+          <div class="cod ed" data-id="${b.id}" data-campo="codigo">${esc(b.codigo) || 'SIN CÓDIGO'}</div></div>
+      </div>
+      <dl>${CAMPOS.map(([k,t]) =>
+        `<dt>${t}</dt><dd class="ed" data-id="${b.id}" data-campo="${k}">${esc(b[k]) || '—'}</dd>`).join('')}
+      </dl>
+      <div class="pie"><button class="btn mini" data-borrar="${b.id}">Borrar</button></div>
+    </div>`;
   }).join('');
-
-  $('pie').innerHTML = `<tr><td colspan="4">Vigentes</td><td>${eur(anual)}</td><td colspan="2"></td></tr>`;
-  $('foot').textContent = POLIZAS.length + ' pólizas';
+  $('foot').textContent = BANCOS.length + ' entidades';
 }
 
-// --- Alta
 $('anadir').addEventListener('click', async () => {
-  const concepto = $('n-concepto').value.trim();
-  if (!concepto) { estado('Falta el concepto', 'err'); $('n-concepto').focus(); return; }
+  const nombre = $('n-nombre').value.trim();
+  if (!nombre) { estado('Falta el nombre', 'err'); $('n-nombre').focus(); return; }
   const btn = $('anadir'); btn.disabled = true; estado('Guardando…');
   try {
-    const r = await api('/api/seguros', {method:'POST', body: JSON.stringify({
-      fecha: $('n-fecha').value, concepto,
-      asegurado: $('n-asegurado').value, banco: $('n-banco').value,
-      periodicidad: $('n-periodicidad').value,
-      importe: parseFloat(($('n-importe').value||'0').replace(',','.')) || 0,
-      meses: parseInt($('n-meses').value,10) || 12
+    const r = await api('/api/bancos', {method:'POST', body: JSON.stringify({
+      codigo: $('n-codigo').value, nombre, cuenta: $('n-cuenta').value,
+      sucursal: $('n-sucursal').value, responsable: $('n-responsable').value,
+      telefono: $('n-telefono').value, email: $('n-email').value, logo: $('n-logo').value
     })});
     if (!r.ok) throw new Error('alta');
-    POLIZAS = (await (await api('/api/seguros')).json()).rows;
-    ['n-concepto','n-asegurado','n-banco','n-importe'].forEach(i => $(i).value = '');
-    $('n-meses').value = 12;
-    pintar(); estado('Póliza añadida', 'ok');
+    BANCOS = (await (await api('/api/bancos')).json()).rows;
+    ['n-codigo','n-nombre','n-cuenta','n-sucursal','n-responsable','n-telefono','n-email','n-logo']
+      .forEach(i => $(i).value = '');
+    pintar(); estado('Entidad añadida', 'ok');
   } catch (e) { estado('No se pudo añadir', 'err'); }
   btn.disabled = false;
 });
 
-// --- Edición en línea
-$('tabla').addEventListener('click', async e => {
+$('fichas').addEventListener('click', async e => {
   const del = e.target.closest('[data-borrar]');
   if (del) {
-    if (!confirm('¿Borrar esta póliza?')) return;
+    if (!confirm('¿Borrar esta entidad?')) return;
     try {
-      await api('/api/seguros?id=' + del.dataset.borrar, {method:'DELETE'});
-      POLIZAS = (await (await api('/api/seguros')).json()).rows;
+      await api('/api/bancos?id=' + del.dataset.borrar, {method:'DELETE'});
+      BANCOS = (await (await api('/api/bancos')).json()).rows;
       pintar(); estado('Borrada', 'ok');
     } catch (err) { estado('No se pudo borrar', 'err'); }
     return;
   }
 
-  const td = e.target.closest('td.ed');
-  if (!td || td.querySelector('input')) return;
-  const id = +td.dataset.id, campo = td.dataset.campo;
-  const p = POLIZAS.find(x => x.id === id);
-  if (!p) return;
+  const el = e.target.closest('.ed');
+  if (!el || el.querySelector('input')) return;
+  const id = +el.dataset.id, campo = el.dataset.campo;
+  const b = BANCOS.find(x => x.id === id);
+  if (!b) return;
 
   const inp = document.createElement('input');
-  if (td.dataset.tipo === 'date') inp.type = 'date';
-  inp.value = p[campo] ?? '';
-  td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
+  inp.value = b[campo] ?? '';
+  el.textContent = ''; el.appendChild(inp); inp.focus(); inp.select();
 
   let hecho = false;
   const cerrar = async guardar => {
     if (hecho) return; hecho = true;
-    const bruto = inp.value.trim();
-    if (!guardar) { pintar(); return; }
-    const nuevo = (campo === 'importe' || campo === 'meses')
-      ? (campo === 'meses' ? parseInt(bruto,10) || 0 : parseFloat(bruto.replace(',','.')) || 0)
-      : bruto;
-    if (String(nuevo) === String(p[campo] ?? '')) { pintar(); return; }
-    const previo = p[campo];
-    p[campo] = nuevo;
+    const nuevo = inp.value.trim();
+    if (!guardar || nuevo === (b[campo] ?? '')) { pintar(); return; }
+    if (campo === 'nombre' && !nuevo) { estado('El nombre no puede quedar vacío', 'err'); pintar(); return; }
+    const previo = b[campo];
+    b[campo] = nuevo;
     estado('Guardando…');
     try {
-      const r = await api('/api/seguros', {method:'PUT', body: JSON.stringify(p)});
+      const r = await api('/api/bancos', {method:'PUT', body: JSON.stringify(b)});
       if (!r.ok) throw new Error('put');
+      BANCOS = (await (await api('/api/bancos')).json()).rows;
       pintar(); estado('Guardado', 'ok');
-    } catch (err) { p[campo] = previo; pintar(); estado('No se pudo guardar', 'err'); }
+    } catch (err) { b[campo] = previo; pintar(); estado('No se pudo guardar', 'err'); }
   };
   inp.addEventListener('keydown', ev => {
     if (ev.key === 'Enter') { ev.preventDefault(); cerrar(true); }
@@ -347,7 +318,6 @@ $('tabla').addEventListener('click', async e => {
 
 cargar();
 </script>
-
 <script>
 /* Negativos en rojo, en toda la página.
    Se reaplica solo cuando el DOM cambia (al editar o al recargar tablas). */
