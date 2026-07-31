@@ -225,7 +225,7 @@
       <div class="kpi"><div class="kpi-label">ACTIVOS BRUTOS</div><div class="kpi-value num" id="kGross">—</div><div class="kpi-sub">Valor de mercado total</div></div>
       <div class="kpi"><div class="kpi-label">PASIVO</div><div class="kpi-value num" id="kDebt">—</div><div class="kpi-sub">Apalancamiento <span id="kLtv"></span></div></div>
       <div class="kpi"><div class="kpi-label">LIQUIDEZ</div><div class="kpi-value num" id="kLiq">—</div><div class="kpi-sub">Caja personal + inv. financieras</div></div>
-      <div class="kpi"><div class="kpi-label">COBERTURA</div><div class="kpi-value num" id="kRun">—</div><div class="kpi-sub" id="kRunSub">Al coste de vida actual</div></div>
+      <div class="kpi"><div class="kpi-label">COBERTURA LABORAL</div><div class="kpi-value num" id="kRun">—</div><div class="kpi-sub" id="kRunSub">Sobre el sueldo neto anual</div></div>
     </div>
 
     <div class="chapter-rule">EVOLUCIÓN</div>
@@ -260,7 +260,7 @@
           <button class="chip" data-mode="commentary">Comentario del mes</button>
           <button class="chip" data-mode="anomalies">Detectar anomalías</button>
           <button class="chip" data-q="¿Qué ha movido el patrimonio en los últimos 6 meses y por qué?">Últimos 6 meses</button>
-          <button class="chip" data-q="Simula que vendo el 30% de mi participación en empresas a valoración actual y lo meto en inversiones financieras. ¿Cómo queda la asignación y la cobertura?">Escenario: venta parcial</button>
+          <button class="chip" data-q="Simula que vendo el 30% de mi participación en empresas a valoración actual y lo meto en inversiones financieras. ¿Cómo queda la asignación y la cobertura laboral?">Escenario: venta parcial</button>
         </div>
         <div class="chat-log" id="chatLog"></div>
         <div class="chat-empty" id="chatEmpty">Pregunta sobre las cifras, pide un escenario, o lanza el comentario del mes. El modelo ve la serie mensual completa y la cartera inmobiliaria.</div>
@@ -397,7 +397,7 @@ function render() {
   $('kLtv').textContent = gross ? pct(Math.abs(cur.debt) / gross) : '—';
   $('kLiq').textContent = eur(liquidity);
   $('kRun').textContent = (liquidity / lifestyle).toFixed(1).replace('.', ',') + ' años';
-  $('kRunSub').textContent = `A ${eur(lifestyle)}/año`;
+  $('kRunSub').textContent = `Sobre ${eur(lifestyle)}/año de sueldo neto`;
 
   // YTD contra el cierre de diciembre anterior
   const prevDec = (+cur.month.slice(0, 4) - 1) + '-12';
