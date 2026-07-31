@@ -10,7 +10,7 @@ const BASE = `Eres el analista del family office de Nacho Rodés (Tartera). Trab
 CÓMO LEER LOS DATOS — importante, no te equivoques con esto:
 - "inmob_equity" ya viene NETO de hipoteca: es equity, no valor de mercado. La deuda inmobiliaria está en "deuda" y desglosada por propiedad.
 - "neto" = inmob_equity + patrimonial + caja + activos. Es el patrimonio neto agregado.
-- "patrimonial" = empresas + inv_fin (participaciones en compañías + inversiones financieras).
+- "patrimonial" = empresas + inv_fin (participaciones en compañías + inversiones financieras). En la app este bloque se llama "Financiero": úsalo así al hablar con él, nunca "patrimonial".
 - Los meses con real=0 son PROYECCIÓN con crecimiento plano hardcodeado, no un modelo. No los trates como previsión fiable ni saques conclusiones de futuro con ellos.
 - Las inversiones financieras son el colchón de liquidez principal.
 
