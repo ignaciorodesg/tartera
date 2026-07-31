@@ -483,5 +483,40 @@ async function guardarCelda(mes, campo, nuevo, original) {
 
 arrancar();
 </script>
+
+<script>
+/* Negativos en rojo, en toda la página.
+   Se reaplica solo cuando el DOM cambia (al editar o al recargar tablas). */
+(function () {
+  'use strict';
+  const NEGATIVO = /^[-−]\s*[\d.,]/;
+
+  function pintar() {
+    const raiz = document.querySelector('main') || document.body;
+    raiz.querySelectorAll('td, dd, .v, .num, strong, span').forEach(function (el) {
+      if (el.childElementCount) return;              // solo hojas
+      if (el.querySelector && el.querySelector('input')) return;
+      const t = (el.textContent || '').trim();
+      if (!t) return;
+      if (NEGATIVO.test(t)) el.classList.add('neg');
+      else if (el.classList.contains('neg') && !el.dataset.forzado) el.classList.remove('neg');
+    });
+  }
+
+  let pendiente = null;
+  const obs = new MutationObserver(function () {
+    clearTimeout(pendiente);
+    pendiente = setTimeout(pintar, 40);
+  });
+
+  function arrancar() {
+    pintar();
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
+  else arrancar();
+})();
+</script>
 </body>
 </html>
