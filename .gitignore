@@ -1,0 +1,8 @@
+node_modules/
+.vercel/
+.env
+.env.local
+
+# NUNCA COMMITEAR: patrimonio completo, y el repo es público.
+*.xlsx
+.db/seed.sql
