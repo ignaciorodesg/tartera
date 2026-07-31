@@ -84,7 +84,7 @@ export default async function handler(request) {
   const system = `${BASE}
 
 MES EN CURSO: ${meta.current_month || (actual.at(-1) || {}).month || 'n/d'}
-COSTE DE VIDA ANUAL: ${meta.lifestyle_cost || '100000'} €
+SUELDO NETO ANUAL: ${meta.lifestyle_cost || '100000'} € (la "cobertura laboral" son los años que la liquidez cubre ese sueldo)
 
 CARTERA INMOBILIARIA:
 ${props}
