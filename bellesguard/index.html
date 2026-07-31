@@ -77,6 +77,8 @@
   .hero .big{font-family:'Fraunces',Georgia,serif;font-size:clamp(40px,6vw,68px);line-height:1;color:var(--mint);letter-spacing:-0.02em;}
   .hero .delta{margin-top:16px;font-size:13.5px;color:var(--ink-soft);line-height:1.7;}
   .pos{color:var(--mint);} .neg{color:var(--red);}
+  /* Los negativos mandan sobre cualquier color de la hoja (.kpi-value, .tot, .v...) */
+  .neg, .neg *{color:var(--red) !important;}
 
   /* ---------- KPIs ---------- */
   .kpis{display:flex;border-top:0.5px solid var(--line);border-bottom:0.5px solid var(--line);}
@@ -650,7 +652,7 @@ async function runChat(mode, chipLabel) {
 
   function pintar() {
     const raiz = document.querySelector('main') || document.body;
-    raiz.querySelectorAll('td, dd, .v, .num, strong, span').forEach(function (el) {
+    raiz.querySelectorAll('td, dd, div, li, p, b, em, strong, span').forEach(function (el) {
       if (el.childElementCount) return;              // solo hojas
       if (el.querySelector && el.querySelector('input')) return;
       const t = (el.textContent || '').trim();

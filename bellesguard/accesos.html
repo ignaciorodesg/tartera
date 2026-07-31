@@ -49,6 +49,8 @@
   .kpi .v{font-family:'Fraunces',Georgia,serif;font-size:23px;line-height:1;}
   .kpi .s{font-size:11px;color:var(--mute);margin-top:7px;}
   .pos{color:var(--mint);} .neg{color:var(--red);}
+  /* Los negativos mandan sobre cualquier color de la hoja (.kpi-value, .tot, .v...) */
+  .neg, .neg *{color:var(--red) !important;}
 
   .rule{border-top:.5px solid var(--line);font-size:10px;letter-spacing:.12em;color:var(--mute);padding:16px 0;margin-top:44px;}
   section{padding:6px 0 30px;}
@@ -233,7 +235,7 @@ if (CUENTAS.length) {
 
   function pintar() {
     const raiz = document.querySelector('main') || document.body;
-    raiz.querySelectorAll('td, dd, .v, .num, strong, span').forEach(function (el) {
+    raiz.querySelectorAll('td, dd, div, li, p, b, em, strong, span').forEach(function (el) {
       if (el.childElementCount) return;              // solo hojas
       if (el.querySelector && el.querySelector('input')) return;
       const t = (el.textContent || '').trim();
