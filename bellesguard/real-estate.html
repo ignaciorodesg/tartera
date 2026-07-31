@@ -38,6 +38,7 @@
   .tree a.on{color:var(--mint);font-weight:500;}
   .tree .sub{padding-left:16px;position:relative;}
   .tree .sub::before{content:'└';position:absolute;left:4px;color:var(--line);}
+  .tree a.dash{font-weight:500;color:var(--ink);margin-bottom:4px;}
   .tree .grp{font-size:9.5px;letter-spacing:.14em;color:var(--mute);margin:18px 0 6px;}
 
   /* --- Contenido --- */
@@ -81,6 +82,23 @@
   td.n{color:var(--ink);}
   tfoot td{border-top:.5px solid var(--line);border-bottom:none;color:var(--ink);font-weight:500;padding-top:12px;}
 
+  /* --- Edición al vuelo --- */
+  tbody tr{transition:background .12s;}
+  tbody tr:hover{background:#F7F6F1;}
+  td.ed{cursor:text;border-radius:4px;padding-right:5px;position:relative;}
+  tbody tr:hover td.ed{box-shadow:inset 0 0 0 .5px var(--line);}
+  td.ed:hover{box-shadow:inset 0 0 0 1px var(--mint-soft) !important;background:var(--panel);}
+  td.ed input{width:100%;padding:4px 5px;border:1px solid var(--mint);border-radius:4px;
+    background:var(--panel);font-family:inherit;font-size:13px;font-variant-numeric:tabular-nums;
+    text-align:right;color:var(--ink);outline:none;}
+  tr.saving{opacity:.5;}
+  tr.saved td.ed{animation:flash 1.1s ease-out;}
+  @keyframes flash{0%{background:rgba(15,110,86,.16);}100%{background:transparent;}}
+
+  .hint{font-size:11.5px;color:var(--mute);margin-bottom:14px;line-height:1.6;}
+  .state{font-size:11.5px;color:var(--mute);margin-left:10px;}
+  .state.err{color:var(--red);}
+
   .tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px;}
   .tab{padding:7px 15px;border:.5px solid var(--line);border-radius:18px;background:none;font-family:inherit;font-size:12px;color:var(--soft);cursor:pointer;transition:all .15s;}
   .tab:hover{border-color:var(--mint-soft);color:var(--mint);}
@@ -93,7 +111,8 @@
     .layout{grid-template-columns:1fr;gap:0;}
     aside{position:static;margin-bottom:28px;}
     .tree{display:flex;flex-wrap:wrap;gap:6px 16px;}
-    .tree .grp{width:100%;margin:8px 0 0;}
+    .tree a.dash{font-weight:500;color:var(--ink);margin-bottom:4px;}
+  .tree .grp{width:100%;margin:8px 0 0;}
     .tree .sub{padding-left:0;} .tree .sub::before{content:'';}
   }
 </style>
@@ -111,9 +130,7 @@
 
   <aside>
     <div class="tree">
-      <div class="grp">AGREGADO</div>
-      <a href="./">0. Net Wealth</a>
-      <a href="./agregado.html">0. Agregado</a>
+      <a href="./" class="dash">Dashboard</a>
       <div class="grp">BLOQUES</div>
       <a href="./real-estate.html" class="on">1. Real Estate</a>
       <a href="./tartera.html" class="sub">1.1 Tartera</a>
@@ -159,6 +176,8 @@
     <div class="rule">DETALLE MENSUAL</div>
     <section>
       <div class="card">
+        <div class="hint">Pasa el ratón por una fila y haz clic en cualquier importe para cambiarlo.
+          Enter guarda, Escape cancela. Los totales y los gráficos se recalculan solos.<span class="state" id="state"></span></div>
         <div class="tabs" id="tabs"></div>
         <table>
           <thead><tr><th>Mes</th><th>Renta</th><th>Cuota</th><th>IBI</th><th>Gastos</th><th>Cash flow</th><th>Valor</th><th>Hipoteca</th><th>Equity</th></tr></thead>
@@ -188,110 +207,185 @@ const pct = (n, d = 1) => (n * 100).toFixed(d).replace('.', ',') + '%';
 // fila: [mes, [ [renta,cuota,ibi,otros,valor,hipoteca] x4 ], real]
 const NAMES = D.blocks;
 const USE = ['Vivienda habitual', 'Alquiler', 'Alquiler', 'Alquiler / Vivienda'];
-const R = D.rows;
-const cut = R.findIndex(r => r[0] === D.actual);
-const act = R.slice(0, cut + 1);
-const cur = R[cut];
+const CAMPOS = ['renta', 'cuota', 'ibi', 'otros', 'valor', 'hipoteca'];
 
-const eq = p => p[4] + p[5];
+let R = D.rows;          // se sustituye por lo que venga de la base
+let cut, act, cur;
+let charts = {};
+let sel = 0;
+
+const eqf = p => p[4] + p[5];
 const gastos = p => p[2] + p[3];
 const cf = p => p[0] + p[1] + p[2] + p[3];
 
-const tot = k => cur[1].reduce((s, p) => s + p[k], 0);
-const valor = tot(4), deuda = tot(5), renta = tot(0);
-const equity = valor + deuda;
-const cashflow = cur[1].reduce((s, p) => s + cf(p), 0);
+function indexar() {
+  cut = R.findIndex(r => r[0] === D.actual);
+  if (cut < 0) cut = R.length - 1;
+  act = R.slice(0, cut + 1);
+  cur = R[cut];
+}
 
-$('asof').textContent = lbl(cur[0]);
-$('kVal').textContent = eur(valor);
-$('kDebt').textContent = eur(deuda);
-$('kLtv').textContent = pct(Math.abs(deuda) / valor);
-$('kEq').textContent = eur(equity);
-$('kRent').textContent = eur(renta);
-$('kYield').textContent = pct(renta * 12 / valor);
-$('kCf').textContent = eur(cashflow);
-$('kCf').className = 'v num ' + (cashflow >= 0 ? 'pos' : 'neg');
+// ---------- Carga desde la base ----------
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (res.status === 401) { location.href = './'; throw new Error('no_auth'); }
+  return res;
+}
 
-const alquiladas = cur[1].filter(p => p[0] > 0).length;
-$('lede').innerHTML =
-  `Cuatro propiedades, ${alquiladas} generando renta. El equity — valor de mercado menos hipoteca — es lo que entra en el patrimonio neto: <strong>${eur(equity)}</strong>. ` +
-  `El cash flow de ${eur(cashflow)} al mes es después de cuota de préstamo, IBI y gastos, e incluye las que no están alquiladas.`;
-$('foot').textContent = 'Datos a ' + lbl(cur[0]);
+function aFilas(rows) {
+  const porMes = new Map();
+  for (const r of rows) {
+    if (!porMes.has(r.month)) porMes.set(r.month, NAMES.map(() => [0, 0, 0, 0, 0, 0]));
+    const p = porMes.get(r.month);
+    if (p[r.prop]) p[r.prop] = CAMPOS.map(c => Number(r[c]) || 0);
+  }
+  return [...porMes.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([mes, props]) => [mes, props, mes <= D.actual ? 1 : 0]);
+}
 
-// ---- Fichas
-$('props').innerHTML = NAMES.map((n, k) => {
-  const p = cur[1][k];
-  const ltv = p[4] ? Math.abs(p[5]) / p[4] : 0;
-  const c = cf(p);
-  const yld = p[4] ? p[0] * 12 / p[4] : 0;
-  return `<div class="p">
-    <h3>${n}</h3><div class="use">${USE[k].toUpperCase()}</div>
-    <dl>
-      <dt>Valor de mercado</dt><dd class="k">${eur(p[4])}</dd>
-      <dt>Hipoteca pendiente</dt><dd>${p[5] ? eur(p[5]) : '—'}</dd>
-      <dt>Equity</dt><dd class="k">${eur(eq(p))}</dd>
-      <dt>Renta mensual</dt><dd>${p[0] ? eur(p[0]) : '—'}</dd>
-      <dt>Cuota préstamo</dt><dd>${p[1] ? eur(p[1]) : '—'}</dd>
-      <dt>IBI y gastos</dt><dd>${gastos(p) ? eur(gastos(p)) : '—'}</dd>
-      ${p[0] ? `<dt>Yield bruto</dt><dd>${pct(yld)}</dd>` : ''}
-    </dl>
-    <div class="bar"><i style="width:${(ltv * 100).toFixed(0)}%"></i></div>
-    <div class="cf"><span style="color:var(--mute)">Cash flow</span>
-      <strong class="${c >= 0 ? 'pos' : 'neg'}">${eur(c)}/mes</strong></div>
-  </div>`;
-}).join('');
+function aPayload(filas) {
+  const out = [];
+  for (const [mes, props] of filas) {
+    props.forEach((p, i) => {
+      const fila = { month: mes, prop: i };
+      CAMPOS.forEach((c, k) => fila[c] = p[k]);
+      out.push(fila);
+    });
+  }
+  return out;
+}
 
-// ---- Gráficos
+async function arrancar() {
+  try {
+    const got = await (await api('/api/realestate')).json();
+    if (got.rows && got.rows.length) {
+      R = aFilas(got.rows);
+    } else {
+      // Primera vez: sembramos la base con lo que trae la página.
+      await api('/api/realestate', { method: 'PUT', body: JSON.stringify({ rows: aPayload(D.rows) }) });
+      R = D.rows;
+    }
+  } catch (e) {
+    estado('Sin conexión con la base: los cambios no se guardarán', true);
+  }
+  indexar();
+  render();
+}
+
+function estado(txt, err) {
+  const el = $('state');
+  el.textContent = txt || '';
+  el.className = 'state' + (err ? ' err' : '');
+  if (txt && !err) setTimeout(() => { if (el.textContent === txt) el.textContent = ''; }, 2600);
+}
+
+// ---------- Render ----------
+function render() {
+  const tot = k => cur[1].reduce((s, p) => s + p[k], 0);
+  const valor = tot(4), deuda = tot(5), renta = tot(0);
+  const equity = valor + deuda;
+  const cashflow = cur[1].reduce((s, p) => s + cf(p), 0);
+
+  $('asof').textContent = lbl(cur[0]);
+  $('kVal').textContent = eur(valor);
+  $('kDebt').textContent = eur(deuda);
+  $('kLtv').textContent = valor ? pct(Math.abs(deuda) / valor) : '—';
+  $('kEq').textContent = eur(equity);
+  $('kRent').textContent = eur(renta);
+  $('kYield').textContent = valor ? pct(renta * 12 / valor) : '—';
+  $('kCf').textContent = eur(cashflow);
+  $('kCf').className = 'v num ' + (cashflow >= 0 ? 'pos' : 'neg');
+
+  const alquiladas = cur[1].filter(p => p[0] > 0).length;
+  $('lede').innerHTML =
+    `Cuatro propiedades, ${alquiladas} generando renta. El equity — valor de mercado menos hipoteca — es lo que entra en el patrimonio neto: <strong>${eur(equity)}</strong>. ` +
+    `El cash flow de ${eur(cashflow)} al mes es después de cuota de préstamo, IBI y gastos, e incluye las que no están alquiladas.`;
+  $('foot').textContent = 'Datos a ' + lbl(cur[0]);
+
+  $('props').innerHTML = NAMES.map((n, k) => {
+    const p = cur[1][k];
+    const ltv = p[4] ? Math.abs(p[5]) / p[4] : 0;
+    const c = cf(p);
+    const yld = p[4] ? p[0] * 12 / p[4] : 0;
+    return `<div class="p">
+      <h3>${n}</h3><div class="use">${USE[k].toUpperCase()}</div>
+      <dl>
+        <dt>Valor de mercado</dt><dd class="k">${eur(p[4])}</dd>
+        <dt>Hipoteca pendiente</dt><dd>${p[5] ? eur(p[5]) : '—'}</dd>
+        <dt>Equity</dt><dd class="k">${eur(eqf(p))}</dd>
+        <dt>Renta mensual</dt><dd>${p[0] ? eur(p[0]) : '—'}</dd>
+        <dt>Cuota préstamo</dt><dd>${p[1] ? eur(p[1]) : '—'}</dd>
+        <dt>IBI y gastos</dt><dd>${gastos(p) ? eur(gastos(p)) : '—'}</dd>
+        ${p[0] ? `<dt>Yield bruto</dt><dd>${pct(yld)}</dd>` : ''}
+      </dl>
+      <div class="bar"><i style="width:${(ltv * 100).toFixed(0)}%"></i></div>
+      <div class="cf"><span style="color:var(--mute)">Cash flow</span>
+        <strong class="${c >= 0 ? 'pos' : 'neg'}">${eur(c)}/mes</strong></div>
+    </div>`;
+  }).join('');
+
+  graficos();
+  detalle();
+}
+
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-Chart.defaults.font.family = "'Inter',Arial,sans-serif";
-Chart.defaults.font.size = 10.5;
-Chart.defaults.color = css('--mute');
-const COL = [css('--c1'), css('--c2'), css('--c3'), css('--c4')];
 
-const axis = {
-  x: { grid:{display:false}, border:{color:css('--line')}, ticks:{maxTicksLimit:9, autoSkip:true} },
-  y: { grid:{color:css('--line')}, border:{display:false},
-       ticks:{callback:v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(1).replace('.',',')+'M' : Math.round(v/1e3)+'k'} },
-};
-const tip = { backgroundColor:css('--ink'), titleColor:css('--cream'), bodyColor:css('--cream'),
-  padding:10, cornerRadius:5, boxWidth:8, boxHeight:8, boxPadding:4,
-  callbacks:{ label: c => ' ' + c.dataset.label + ': ' + eur(c.parsed.y) } };
-const legend = { position:'bottom', labels:{boxWidth:9, boxHeight:9, padding:15, usePointStyle:true, pointStyle:'rect'} };
+function graficos() {
+  Chart.defaults.font.family = "'Inter',Arial,sans-serif";
+  Chart.defaults.font.size = 10.5;
+  Chart.defaults.color = css('--mute');
+  const COL = [css('--c1'), css('--c2'), css('--c3'), css('--c4')];
 
-new Chart($('cEq'), {
-  type: 'line',
-  data: { labels: act.map(r => lbl(r[0])),
-    datasets: NAMES.map((n, k) => ({
-      label: n, data: act.map(r => eq(r[1][k])),
-      borderColor: COL[k], backgroundColor: COL[k], borderWidth: 0,
-      pointRadius: 0, fill: true, tension: .25,
-    })) },
-  options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-    scales:{ x:axis.x, y:{...axis.y, stacked:true} }, plugins:{legend, tooltip:tip} },
-});
+  const axis = {
+    x: { grid:{display:false}, border:{color:css('--line')}, ticks:{maxTicksLimit:9, autoSkip:true} },
+    y: { grid:{color:css('--line')}, border:{display:false},
+         ticks:{callback:v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(1).replace('.',',')+'M' : Math.round(v/1e3)+'k'} },
+  };
+  const tip = { backgroundColor:css('--ink'), titleColor:css('--cream'), bodyColor:css('--cream'),
+    padding:10, cornerRadius:5, boxWidth:8, boxHeight:8, boxPadding:4,
+    callbacks:{ label: c => ' ' + c.dataset.label + ': ' + eur(c.parsed.y) } };
+  const legend = { position:'bottom', labels:{boxWidth:9, boxHeight:9, padding:15, usePointStyle:true, pointStyle:'rect'} };
 
-// Media móvil de 3 meses: el cash flow bruto es muy ruidoso (IBI trimestral)
-const roll = arr => arr.map((_, i) => {
-  const w = arr.slice(Math.max(0, i - 2), i + 1);
-  return w.reduce((a, b) => a + b, 0) / w.length;
-});
-const cfSerie = act.map(r => r[1].reduce((s, p) => s + cf(p), 0));
-new Chart($('cCf'), {
-  type: 'line',
-  data: { labels: act.map(r => lbl(r[0])),
-    datasets: [
-      { label:'Cash flow (media 3m)', data: roll(cfSerie), borderColor: css('--mint'),
-        borderWidth: 2, pointRadius: 0, tension: .3, fill: true, backgroundColor: 'rgba(15,110,86,.10)' },
-      { label:'Renta bruta', data: roll(act.map(r => r[1].reduce((s,p) => s + p[0], 0))),
-        borderColor: css('--mute'), borderWidth: 1.5, borderDash:[5,4], pointRadius: 0, tension: .3 },
-    ] },
-  options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-    scales:{ x:axis.x, y:{...axis.y, ticks:{callback:v => Math.round(v) + ' €'}} },
-    plugins:{legend, tooltip:tip} },
-});
+  charts.eq?.destroy();
+  charts.eq = new Chart($('cEq'), {
+    type: 'line',
+    data: { labels: act.map(r => lbl(r[0])),
+      datasets: NAMES.map((n, k) => ({
+        label: n, data: act.map(r => eqf(r[1][k])),
+        borderColor: COL[k], backgroundColor: COL[k], borderWidth: 0,
+        pointRadius: 0, fill: true, tension: .25,
+      })) },
+    options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      scales:{ x:axis.x, y:{...axis.y, stacked:true} }, plugins:{legend, tooltip:tip} },
+  });
 
-// ---- Detalle mensual
-let sel = 0;
+  // Media móvil de 3 meses: el cash flow bruto es muy ruidoso (IBI trimestral)
+  const roll = arr => arr.map((_, i) => {
+    const w = arr.slice(Math.max(0, i - 2), i + 1);
+    return w.reduce((a, b) => a + b, 0) / w.length;
+  });
+  charts.cf?.destroy();
+  charts.cf = new Chart($('cCf'), {
+    type: 'line',
+    data: { labels: act.map(r => lbl(r[0])),
+      datasets: [
+        { label:'Cash flow (media 3m)', data: roll(act.map(r => r[1].reduce((s,p) => s + cf(p), 0))),
+          borderColor: css('--mint'), borderWidth: 2, pointRadius: 0, tension: .3, fill: true,
+          backgroundColor: 'rgba(15,110,86,.10)' },
+        { label:'Renta bruta', data: roll(act.map(r => r[1].reduce((s,p) => s + p[0], 0))),
+          borderColor: css('--mute'), borderWidth: 1.5, borderDash:[5,4], pointRadius: 0, tension: .3 },
+      ] },
+    options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      scales:{ x:axis.x, y:{...axis.y, ticks:{callback:v => Math.round(v) + ' €'}} },
+      plugins:{legend, tooltip:tip} },
+  });
+}
+
+// ---------- Detalle mensual, editable ----------
 $('tabs').innerHTML = NAMES.map((n, k) => `<button class="tab${k===0?' on':''}" data-k="${k}">${n}</button>`).join('');
 $('tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab'); if (!b) return;
@@ -300,16 +394,19 @@ $('tabs').addEventListener('click', e => {
   detalle();
 });
 
+// Índice de columna editable -> posición en el array de la propiedad
+const EDITABLES = { 1:0, 2:1, 3:2, 4:3, 6:4, 7:5 };
+
 function detalle() {
   const ult = act.slice(-24).reverse();
   $('detail').innerHTML = ult.map(r => {
     const p = r[1][sel], c = cf(p);
-    return `<tr><td class="n">${lbl(r[0])}</td>
-      <td>${p[0] ? eur(p[0]) : '—'}</td><td>${p[1] ? eur(p[1]) : '—'}</td>
-      <td>${p[2] ? eur(p[2]) : '—'}</td><td>${p[3] ? eur(p[3]) : '—'}</td>
+    const td = (col, val) => `<td class="ed" data-mes="${r[0]}" data-campo="${EDITABLES[col]}">${val ? eur(val) : '—'}</td>`;
+    return `<tr data-mes="${r[0]}"><td class="n">${lbl(r[0])}</td>
+      ${td(1, p[0])}${td(2, p[1])}${td(3, p[2])}${td(4, p[3])}
       <td class="${c >= 0 ? 'pos' : 'neg'}">${eur(c)}</td>
-      <td>${eur(p[4])}</td><td>${p[5] ? eur(p[5]) : '—'}</td>
-      <td class="n">${eur(eq(p))}</td></tr>`;
+      ${td(6, p[4])}${td(7, p[5])}
+      <td class="n">${eur(eqf(p))}</td></tr>`;
   }).join('');
 
   const s = k => ult.reduce((a, r) => a + r[1][sel][k], 0);
@@ -318,7 +415,73 @@ function detalle() {
     <td>${eur(s(0))}</td><td>${eur(s(1))}</td><td>${eur(s(2))}</td><td>${eur(s(3))}</td>
     <td class="${sc >= 0 ? 'pos' : 'neg'}">${eur(sc)}</td><td colspan="3"></td></tr>`;
 }
-detalle();
+
+// Click en una celda editable -> input
+$('detail').addEventListener('click', e => {
+  const td = e.target.closest('td.ed');
+  if (!td || td.querySelector('input')) return;
+
+  const mes = td.dataset.mes, campo = +td.dataset.campo;
+  const fila = R.find(r => r[0] === mes);
+  if (!fila) return;
+  const original = fila[1][sel][campo];
+
+  const inp = document.createElement('input');
+  inp.value = original ? String(original).replace('.', ',') : '';
+  inp.inputMode = 'decimal';
+  td.textContent = '';
+  td.appendChild(inp);
+  inp.focus();
+  inp.select();
+
+  let cerrado = false;
+  const cerrar = (guardar) => {
+    if (cerrado) return;
+    cerrado = true;
+    const txt = inp.value.trim().replace(/[^\d,.-]/g, '').replace(',', '.');
+    const nuevo = txt === '' ? 0 : parseFloat(txt);
+    if (!guardar || !Number.isFinite(nuevo) || nuevo === original) {
+      detalle();
+      return;
+    }
+    guardarCelda(mes, campo, nuevo, original);
+  };
+
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); cerrar(true); }
+    if (ev.key === 'Escape') { ev.preventDefault(); cerrar(false); }
+  });
+  inp.addEventListener('blur', () => cerrar(true));
+});
+
+async function guardarCelda(mes, campo, nuevo, original) {
+  const fila = R.find(r => r[0] === mes);
+  fila[1][sel][campo] = nuevo;
+
+  const tr = $('detail').querySelector(`tr[data-mes="${mes}"]`);
+  tr?.classList.add('saving');
+  estado('Guardando…');
+
+  const payload = { month: mes, prop: sel };
+  CAMPOS.forEach((c, k) => payload[c] = fila[1][sel][k]);
+
+  try {
+    const res = await api('/api/realestate', { method: 'PUT', body: JSON.stringify({ rows: [payload] }) });
+    if (!res.ok) throw new Error('save');
+    indexar();
+    render();
+    const tr2 = $('detail').querySelector(`tr[data-mes="${mes}"]`);
+    tr2?.classList.add('saved');
+    estado('Guardado');
+  } catch (err) {
+    fila[1][sel][campo] = original;   // deshacer en pantalla
+    indexar();
+    render();
+    estado('No se pudo guardar', true);
+  }
+}
+
+arrancar();
 </script>
 </body>
 </html>
