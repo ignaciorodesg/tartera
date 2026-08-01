@@ -99,6 +99,7 @@
   td.grp{color:var(--ink);}
   td.abre{cursor:zoom-in;border-radius:4px;}
   td.abre:hover{box-shadow:inset 0 0 0 1px var(--mint-soft);background:var(--panel);}
+  td.abre.abierto{cursor:zoom-out;}
   th.det, td.det{background:rgba(15,110,86,.035);}
   th.det{padding-left:10px;} td.det{padding-left:10px;padding-right:5px;}
   button.mas{font:inherit;font-size:11px;line-height:1;width:15px;height:15px;padding:0;
@@ -168,8 +169,8 @@
 <div class="rule">DETALLE MENSUAL</div>
 <section><div class="card">
   <div class="hint">Pasa el ratón por una fila y haz clic en cualquier importe para cambiarlo.
-    Enter guarda, Escape cancela. Las columnas que son suma de varias (Líquido, Inv. financieras,
-    Alternativo) se despliegan al hacer clic y se editan por dentro.<span class="state" id="state"></span></div>
+    Enter guarda, Escape cancela. Las cuatro columnas de grupo son totales: haz clic en una
+    para desplegarla y editar las columnas que la componen.<span class="state" id="state"></span></div>
   <div style="overflow-x:auto"><table><thead id="detHead"></thead><tbody id="detBody"></tbody></table></div>
 </div></section>
 <footer><span>Fuente: Wealth OS · hoja 2. PATRIMONIAL (Financiero)</span><span id="foot"></span></footer>
@@ -214,7 +215,7 @@ const G = [["L\u00edquido", [0, 1, 2]], ["Startups", [4]], ["Inv. financieras", 
 // Lo que se ve al desplegar cada grupo. El total del grupo sigue siendo su definicion en G.
 const DETALLE = {
   'Líquido': [0, 1, 2],
-  'Startups': [3, 5, 6, 7, 8, 9],
+  'Startups': [3, 4, 5, 6, 7, 8, 9],
   'Inv. financieras': [10, 11],
   'Alternativo': [12, 13],
 };
@@ -324,12 +325,12 @@ function columnas(ult) {
   const cols = [];
   GRUPOS.forEach(([nombre, idxs]) => {
     const det = (DETALLE[nombre] || idxs).filter(conDato);
-    const solo = idxs.length === 1 ? idxs[0] : null;   // si el grupo es una sola columna, se edita en plano
+    // Una columna de grupo es siempre un total: no se escribe en ella, se despliega.
     if (abiertos.has(nombre)) {
       det.forEach(i => cols.push({ t: 'c', i }));
-      cols.push({ t: 'g', nombre, idxs, solo, abierto: true, hay: det.length });
+      cols.push({ t: 'g', nombre, idxs, abierto: true, hay: det.length });
     } else {
-      cols.push({ t: 'g', nombre, idxs, solo, abierto: false, hay: det.length });
+      cols.push({ t: 'g', nombre, idxs, abierto: false, hay: det.length });
     }
   });
   return cols;
@@ -351,11 +352,8 @@ function detalle() {
         return `<td class="ed det" data-mes="${r[0]}" data-col="${c.i}">${r[1][c.i] ? eur(r[1][c.i]) : '—'}</td>`;
       }
       const v = suma(r, c.idxs);
-      // Un grupo de una sola columna se edita tal cual. Una suma no se puede escribir
-      // sin inventarse un reparto: al hacer clic se despliega y se editan sus columnas.
-      return c.solo === null
-        ? `<td class="grp abre" data-g="${c.nombre}" title="Ver el detalle para editarlo">${v ? eur(v) : '—'}</td>`
-        : `<td class="ed grp" data-mes="${r[0]}" data-col="${c.solo}">${v ? eur(v) : '—'}</td>`;
+      const t = c.abierto ? 'Plegar' : 'Ver el detalle para editarlo';
+      return `<td class="grp abre${c.abierto ? ' abierto' : ''}" data-g="${c.nombre}" title="${t}">${v ? eur(v) : '—'}</td>`;
     }).join('');
     return `<tr data-mes="${r[0]}"><td class="n">${lbl(r[0])}</td>${celdas}<td class="n">${eur(suma(r, TODAS))}</td></tr>`;
   }).join('');
