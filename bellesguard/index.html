@@ -50,10 +50,11 @@
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
   .layout > main{min-width:0;}
   /* Banner apaisado: la imagen es 16:9, el recorte se queda en la cresta */
-  .cresta{margin:0 0 15px;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
+  .cresta{margin:0;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
   .cresta img{width:100%;height:132px;object-fit:cover;object-position:center 0;
     filter:grayscale(1) contrast(1.04);display:block;}
-  @media (max-width:900px){ .cresta img{height:96px;} }
+  .cresta + .hero{padding-top:43px;}
+  @media (max-width:900px){ .cresta img{height:96px;} .cresta + .hero{padding-top:30px;} }
   aside{position:sticky;top:32px;align-self:start;}
   /* Sin cabecera: la marca y el mes viven arriba del menu */
   .marca{margin-bottom:22px;}
@@ -222,7 +223,7 @@
   <main class="col">
     <!-- La cresta del Prat de Cadi, la misma foto de la home publica -->
     <figure class="cresta">
-      <img src="/2000-4-2-CAPA-FONS-prat-de-cadi-1.webp" alt="Prat de Cadí" loading="lazy" decoding="async">
+      <img src="/2000-4-2-CAPA-FONS-prat-de-cadi-1.webp" alt="Prat de Cadí">
     </figure>
 
     <section class="hero">
