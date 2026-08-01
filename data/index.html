@@ -252,7 +252,6 @@
       <div class="supuestos">
         <div class="sp"><label>INMUEBLES %/AÑO</label><input id="s_re" inputmode="decimal"></div>
         <div class="sp"><label>FONDOS %/AÑO</label><input id="s_fin" inputmode="decimal"></div>
-        <div class="sp"><label>AHORRO €/MES</label><input id="s_ahorro" inputmode="decimal"></div>
         <div class="sp"><label>HORIZONTE (AÑOS)</label><input id="s_anos" inputmode="decimal"></div>
         <span class="state" id="spState"></span>
         <button class="btn-sp" id="spGuardar">GUARDAR SUPUESTOS</button>
@@ -436,14 +435,13 @@ function derived() {
 // ================= PROYECCIÓN =================
 // La serie del XLSX traía los meses futuros escritos a mano. Aquí se calculan
 // con supuestos explícitos: cada número de la línea discontinua sale de estos cuatro campos.
-const SUP_DEF = { re: 3, fin: 8, ahorro: 1500, anos: 5 };
+const SUP_DEF = { re: 3, fin: 8, anos: 5 };
 
 function supuestos() {
   const m = STATE.meta || {};
   return {
     re: nParse(m.proy_re ?? SUP_DEF.re),
     fin: nParse(m.proy_fin ?? SUP_DEF.fin),
-    ahorro: nParse(m.proy_ahorro ?? SUP_DEF.ahorro),
     anos: Math.min(30, Math.max(1, Math.round(nParse(m.proy_anos ?? SUP_DEF.anos)) || SUP_DEF.anos)),
   };
 }
@@ -483,7 +481,7 @@ function proyectar() {
   let valor = cur.real_estate - cur.debt;
   let deuda = cur.debt;
   let inv = cur.inv_fin;
-  let caja = cur.caja;
+  const caja = cur.caja;      // sin supuesto de ahorro: la caja no crece sola
   const empresas = cur.empresas;      // participaciones ilíquidas: planas, no se marcan al alza
   const activos = cur.activos;        // activos físicos: sin revalorizar
 
@@ -495,7 +493,6 @@ function proyectar() {
     // Si el cuadro llega hasta aquí, es el dato real; si no, se extrapola.
     deuda = mes in cuadro ? cuadro[mes] : Math.min(0, deuda + amort);
     inv *= gFin;
-    caja += S.ahorro;
     const re = valor + deuda;
     out.push({ month: mes, is_actual: 0, real_estate: re, empresas, inv_fin: inv, caja, activos,
                debt: deuda, patrimonial: empresas + inv, net: re + empresas + inv + caja + activos });
@@ -507,7 +504,6 @@ function pintarSupuestos() {
   const S = supuestos();
   $('s_re').value = nFmt(S.re);
   $('s_fin').value = nFmt(S.fin);
-  $('s_ahorro').value = nFmt(S.ahorro);
   $('s_anos').value = String(S.anos);
 
   const cur = currentRow(), P = STATE.proj || [];
@@ -521,7 +517,8 @@ function pintarSupuestos() {
     `un ${pct(cagr / 100)} anual. Los inmuebles se revalorizan un ${nFmt(S.re)}% al año y la hipoteca baja ` +
     `según tu cuadro de amortización, que llega hasta ${lbl(Object.keys(cuadroDeuda()).sort().pop() || cur.month)}; a partir de ahí, ${eur(Math.abs(amort))}/mes. ` +
     `Empresas (${eur(cur.empresas)}) y activos físicos (${eur(cur.activos)}) se mantienen planos: ` +
-    `son valoraciones, no precios de mercado. No es una predicción, es lo que sale de estos cuatro supuestos.`;
+    `son valoraciones, no precios de mercado, y la caja se queda como está: no hay supuesto de ahorro. ` +
+    `No es una predicción, es lo que sale de estos supuestos.`;
 
   const t = tasaTendencia(), T = STATE.tend || [];
   if (t && T.length) {
@@ -538,7 +535,6 @@ async function guardarSupuestos() {
   const meta = {
     proy_re: String(nParse($('s_re').value)),
     proy_fin: String(nParse($('s_fin').value)),
-    proy_ahorro: String(nParse($('s_ahorro').value)),
     proy_anos: String(Math.min(30, Math.max(1, Math.round(nParse($('s_anos').value)) || 5))),
   };
   $('spState').textContent = 'Guardando…';
@@ -553,8 +549,8 @@ async function guardarSupuestos() {
 }
 
 $('spGuardar').addEventListener('click', guardarSupuestos);
-['s_re', 's_fin', 's_ahorro', 's_anos'].forEach((id) =>
-  $(id).addEventListener('change', () => { STATE.meta[{s_re:'proy_re',s_fin:'proy_fin',s_ahorro:'proy_ahorro',s_anos:'proy_anos'}[id]] = String(nParse($(id).value)); render(); })
+['s_re', 's_fin', 's_anos'].forEach((id) =>
+  $(id).addEventListener('change', () => { STATE.meta[{s_re:'proy_re',s_fin:'proy_fin',s_anos:'proy_anos'}[id]] = String(nParse($(id).value)); render(); })
 );
 
 // Tendencia: pendiente histórica del patrimonio neto, ajustada por mínimos cuadrados sobre
@@ -714,7 +710,8 @@ function renderCharts() {
         borderColor: css('--line'), borderWidth: 1.5, borderDash: [2, 3], pointRadius: 0, tension: 0.25 },
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-      scales: axis, plugins: { legend, tooltip } },
+      // Tope del eje: sin él, la tendencia histórica se dispara y aplasta la serie real.
+      scales: { x: axis.x, y: { ...axis.y, max: 6e6 } }, plugins: { legend, tooltip } },
   });
 
   const act = actualRows();
