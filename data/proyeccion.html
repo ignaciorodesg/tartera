@@ -164,6 +164,13 @@
   .sp input{width:110px;padding:6px 8px;border:.5px solid var(--line);border-radius:4px;background:var(--panel);
     font-family:inherit;font-size:13px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);outline:none;}
   .sp input:focus{border-color:var(--mint);}
+  .barra{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:flex-end;margin-bottom:34px;}
+  .barra .sep{flex:1;}
+  .barra .state{font-size:11.5px;color:var(--mute);}
+  .barra .state.err{color:var(--red);} .barra .state.ok{color:var(--mint);}
+  .barra .btn{padding:9px 18px;border:none;border-radius:20px;background:var(--mint);color:#fff;
+    font-family:inherit;font-size:11px;letter-spacing:.08em;cursor:pointer;}
+  .barra .btn:hover{background:#0c5a46;}
   .nota{font-size:12.5px;line-height:1.8;color:var(--soft);}
   .nota p{margin-bottom:12px;} .nota p:last-child{margin-bottom:0;}
   .nota b{color:var(--ink);font-weight:500;}
@@ -188,6 +195,36 @@
       <a href="/data/proyeccion.html" class="on">Proyección</a>
       <a href="#" class="salir" id="logout">Salir</a>
 </div></aside><main>
+<script>
+/* Formato español en toda la app: miles con punto, decimales con coma.
+   nFmt  -> numero a texto ("1.234.567,89")
+   nParse-> texto a numero, aceptando ambos formatos sin ambiguedad */
+window.nFmt = function (n, dec) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  const d = dec === undefined ? (Number.isInteger(v) ? 0 : 2) : dec;
+  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' }).format(v);
+};
+window.nParse = function (s) {
+  let t = String(s == null ? '' : s).replace(/[^\d.,-]/g, '');
+  if (!t) return 0;
+  const neg = /^-/.test(t);
+  t = t.replace(/-/g, '');
+  const punto = t.lastIndexOf('.'), coma = t.lastIndexOf(',');
+  if (punto > -1 && coma > -1) {
+    // El ultimo separador manda: el otro es de miles
+    t = coma > punto ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  } else if (coma > -1) {
+    t = t.replace(',', '.');
+  } else if (punto > -1) {
+    // Solo puntos: es agrupacion de miles si van en grupos exactos de 3
+    if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+  }
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? (neg ? -n : n) : 0;
+};
+</script>
+
 <div class="hero"><div class="eyebrow">CONFIGURACIÓN</div><h1>Proyección</h1>
 <div class="sub">Los supuestos con los que se dibuja la línea discontinua del dashboard.
 Se guardan aquí y el gráfico los usa; no hay ningún número escondido en el código.</div></div>
