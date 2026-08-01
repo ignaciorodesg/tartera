@@ -1,7 +1,8 @@
 // GET  /api/realestate -> detalle mensual por propiedad
 // PUT  /api/realestate -> upsert de filas { rows: [{month, prop, renta, cuota, ibi, otros, valor, hipoteca}] }
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
+import { recalcularMeses } from './_lib/recalc.js';
 
 export const config = { runtime: 'edge' };
 
@@ -15,7 +16,7 @@ const num = (v) => {
 };
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
 
   if (request.method === 'GET') {
@@ -64,5 +65,8 @@ export default async function handler(request) {
       otros = EXCLUDED.otros, valor = EXCLUDED.valor, hipoteca = EXCLUDED.hipoteca,
       updated_at = now()`;
 
-  return json({ ok: true, filas: rows.length });
+  // `series` es una vista del detalle: si cambia el detalle, hay que rehacerla.
+  const recalculados = await recalcularMeses(rows.map((r) => r.month));
+
+  return json({ ok: true, filas: rows.length, meses_recalculados: recalculados.length });
 }

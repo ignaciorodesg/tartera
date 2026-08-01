@@ -1,5 +1,5 @@
-import { checkPassword, createSession, sessionCookie, verifySession, readCookie, clientIp, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { checkPassword, createSession, sessionCookie, leerSession, renovarCookie, readCookie, clientIp, json } from './_lib/auth.js';
+import { sql, sessionEpoch } from './_lib/db.js';
 
 export const config = { runtime: 'edge' };
 
@@ -9,8 +9,11 @@ const LOCK_MIN = 15;
 export default async function handler(request) {
   const env = process.env;
 
+  // GET hace de latido: si la sesión vale, la renueva otros 30 minutos.
   if (request.method === 'GET') {
-    return json({ authed: await verifySession(readCookie(request), env) });
+    const datos = await leerSession(readCookie(request), env, await sessionEpoch());
+    if (!datos) return json({ authed: false });
+    return json({ authed: true }, 200, { 'Set-Cookie': await renovarCookie(datos, env) });
   }
   if (request.method !== 'POST') return json({ error: 'method' }, 405);
 
@@ -44,5 +47,5 @@ export default async function handler(request) {
   }
 
   await sql`DELETE FROM bellesguard.login_attempts WHERE ip = ${ip}`;
-  return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(await createSession(env)) });
+  return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie(await createSession(env, await sessionEpoch())) });
 }

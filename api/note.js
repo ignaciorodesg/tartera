@@ -1,11 +1,11 @@
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
 export const config = { runtime: 'edge' };
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
   if (request.method !== 'POST') return json({ error: 'method' }, 405);
 

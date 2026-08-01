@@ -4,7 +4,8 @@
 // Formato largo (una fila por celda) para que sirva a cualquier bloque
 // sin tener que crear una tabla por hoja.
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
+import { recalcularMeses } from './_lib/recalc.js';
 
 export const config = { runtime: 'edge' };
 
@@ -19,7 +20,7 @@ const num = (v) => {
 };
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
 
   const url = new URL(request.url);
@@ -68,5 +69,8 @@ export default async function handler(request) {
     ON CONFLICT (block, month, col) DO UPDATE SET
       value = EXCLUDED.value, updated_at = now()`;
 
-  return json({ ok: true, filas: rows.length });
+  // `series` es una vista del detalle: si cambia el detalle, hay que rehacerla.
+  const recalculados = await recalcularMeses(rows.map((r) => r.month));
+
+  return json({ ok: true, filas: rows.length, meses_recalculados: recalculados.length });
 }

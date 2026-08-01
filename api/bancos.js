@@ -3,7 +3,7 @@
 // PUT    /api/bancos        -> edición { id, ... }
 // DELETE /api/bancos?id=1   -> baja
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
 
 export const config = { runtime: 'edge' };
 
@@ -22,7 +22,7 @@ const url = (v) => {
 };
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
 
   const q = new URL(request.url).searchParams;

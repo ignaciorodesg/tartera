@@ -1,5 +1,5 @@
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
 
 export const config = { runtime: 'edge' };
 
@@ -33,7 +33,7 @@ const MODES = {
 };
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
   if (request.method !== 'POST') return json({ error: 'method' }, 405);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: 'missing_api_key' }, 500);

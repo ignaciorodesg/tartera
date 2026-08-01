@@ -1,5 +1,5 @@
 import { requireAuth, json } from './_lib/auth.js';
-import { sql } from './_lib/db.js';
+import { sql, sessionEpoch } from './_lib/db.js';
 
 export const config = { runtime: 'edge' };
 
@@ -11,7 +11,7 @@ const num = (v) => {
 };
 
 export default async function handler(request) {
-  const denied = await requireAuth(request);
+  const denied = await requireAuth(request, process.env, await sessionEpoch());
   if (denied) return denied;
 
   if (request.method === 'GET') return read();
