@@ -26,8 +26,6 @@
   /* ---------- Login ---------- */
   #gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
   .gate-box{width:100%;max-width:340px;text-align:center;}
-  .gate-box .logo{font-size:13px;letter-spacing:0.12em;font-weight:500;margin-bottom:8px;}
-  .gate-box .sub{font-size:11px;letter-spacing:0.12em;color:var(--ink-mute);margin-bottom:40px;}
   .gate-box input{
     width:100%;padding:13px 14px;border:0.5px solid var(--line);border-radius:4px;
     background:var(--panel);font-family:inherit;font-size:14px;color:var(--ink);text-align:center;
@@ -187,8 +185,6 @@
 <!-- Oculto de salida: solo aparece si la comprobacion dice que no hay sesion -->
 <div id="gate" class="hide">
   <div class="gate-box">
-    <div class="logo">TARTERA</div>
-    <div class="sub">PATRIMONIO</div>
     <form id="gateForm">
       <input type="password" id="pw" placeholder="Contraseña" autocomplete="current-password" required>
       <button type="submit" id="gateBtn">ENTRAR</button>
