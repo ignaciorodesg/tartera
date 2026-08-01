@@ -184,7 +184,8 @@
 <body>
 
 <!-- ============ LOGIN ============ -->
-<div id="gate">
+<!-- Oculto de salida: solo aparece si la comprobacion dice que no hay sesion -->
+<div id="gate" class="hide">
   <div class="gate-box">
     <div class="logo">TARTERA</div>
     <div class="sub">PATRIMONIO</div>
@@ -667,7 +668,7 @@ async function runChat(mode, chipLabel) {
 // ================= ARRANQUE =================
 (async () => {
   try {
-    const res = await fetch('/api/login', { credentials: 'same-origin' });
+    const res = await fetch('/api/login', { credentials: 'same-origin', cache: 'no-store' });
     const { authed } = await res.json();
     if (authed) { showApp(); await load(); } else showGate();
   } catch { showGate(); }
