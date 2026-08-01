@@ -30,7 +30,15 @@
      haga scroll: al plegar las columnas la tabla no recuperaba su ancho. */
   .layout > main{min-width:0;}
   .layout > main [style*='overflow-x']{max-width:100%;}
-  aside{position:sticky;top:96px;align-self:start;}
+  aside{position:sticky;top:32px;align-self:start;}
+  /* Sin cabecera: la marca y el mes viven arriba del menu */
+  .marca{margin-bottom:22px;}
+  .marca .logo{display:block;font-size:13px;letter-spacing:.12em;font-weight:500;}
+  .marca .mes{display:block;margin-top:5px;font-size:11px;letter-spacing:.06em;color:var(--mint);
+    font-variant-numeric:tabular-nums;}
+  .tree a.salir{margin-top:2px;color:var(--mute);}
+  .tree a.salir:hover{color:var(--red);}
+
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--soft);padding:1px 0;}
   .tree a:hover{color:var(--mint);}
@@ -130,9 +138,9 @@
   .vacio{text-align:center;padding:44px 20px;color:var(--mute);font-size:13px;line-height:1.7;}
   .tree a.entrada{color:var(--mint);font-weight:500;}
 </style></head><body>
-<header><nav><span class="logo">TARTERA <span>· BELLESGUARD</span></span>
-<span class="crumb">MEMENTO MORI</span></nav></header>
-<div class="wrap layout"><aside><div class="tree">
+<div class="wrap layout"><aside>
+      <div class="marca"><span class="logo">TARTERA <span>&middot; BELLESGUARD</span></span><span class="mes num" id="asof" data-auto></span></div>
+      <div class="tree">
       <a href="/bellesguard/" class="dash">Dashboard</a>
       <a href="/bellesguard/cierre.html" class="entrada">Cierre de mes</a>
       <div class="grp">BLOQUES</div>
@@ -147,6 +155,7 @@
       <a href="/bellesguard/memento.html" class="on">Memento Mori</a>
       <div class="grp">CONFIGURACIÓN</div>
       <a href="/bellesguard/bancos.html">Bancos</a>
+      <a href="#" class="salir" id="logout">Salir</a>
 </div></aside><main>
 <div class="hero"><div class="eyebrow">PERSONAL</div><h1>Memento Mori</h1><div class="sub">El recordatorio de que el patrimonio se acumula en un tiempo que no se acumula.</div></div>
 <div class="kpis" id="kpis"></div>
@@ -246,6 +255,29 @@ $('weeks').innerHTML = html;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
   else arrancar();
+})();
+</script>
+<script>
+/* Comunes a todas las paginas: cerrar sesion y, donde nadie lo rellena, el mes en curso. */
+(function () {
+  'use strict';
+  const salir = document.getElementById('logout');
+  if (salir) salir.addEventListener('click', async function (e) {
+    e.preventDefault();
+    try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+    location.href = '/bellesguard/';
+  });
+
+  const mes = document.querySelector('#asof[data-auto]');
+  if (!mes) return;
+  const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  fetch('/api/data', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      const s = d && d.meta && d.meta.current_month;
+      if (s) mes.textContent = MES[+s.slice(5) - 1] + " '" + s.slice(2, 4);
+    })
+    .catch(function () {});
 })();
 </script>
 </body></html>

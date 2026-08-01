@@ -50,11 +50,19 @@
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
   .layout > main{min-width:0;}
   /* Banner apaisado: la imagen es 16:9, el recorte se queda en la cresta */
-  .cresta{margin:0 0 30px;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
+  .cresta{margin:0 0 15px;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
   .cresta img{width:100%;height:132px;object-fit:cover;object-position:center 0;
     filter:grayscale(1) contrast(1.04);display:block;}
   @media (max-width:900px){ .cresta img{height:96px;} }
-  aside{position:sticky;top:96px;align-self:start;}
+  aside{position:sticky;top:32px;align-self:start;}
+  /* Sin cabecera: la marca y el mes viven arriba del menu */
+  .marca{margin-bottom:22px;}
+  .marca .logo{display:block;font-size:13px;letter-spacing:.12em;font-weight:500;}
+  .marca .mes{display:block;margin-top:5px;font-size:11px;letter-spacing:.06em;color:var(--mint);
+    font-variant-numeric:tabular-nums;}
+  .tree a.salir{margin-top:2px;color:var(--mute);}
+  .tree a.salir:hover{color:var(--red);}
+
   .tree{font-size:12.5px;line-height:1.9;}
   .tree a{display:block;color:var(--ink-soft);padding:1px 0;}
   .tree a:hover{color:var(--mint);}
@@ -189,18 +197,9 @@
 
 <!-- ============ APP ============ -->
 <div id="app" class="hide">
-  <header>
-    <nav>
-      <span class="logo">TARTERA <span>· BELLESGUARD</span></span>
-      <div class="nav-actions">
-        <span id="asOf" class="num"></span>
-        <button id="logout">SALIR</button>
-      </div>
-    </nav>
-  </header>
-
   <div class="layout">
     <aside>
+      <div class="marca"><span class="logo">TARTERA <span>&middot; BELLESGUARD</span></span><span class="mes num" id="asof"></span></div>
       <div class="tree">
         <a href="/bellesguard/" class="dash on">Dashboard</a>
         <a href="/bellesguard/cierre.html" class="entrada">Cierre de mes</a>
@@ -216,6 +215,7 @@
         <a href="/bellesguard/memento.html">Memento Mori</a>
       <div class="grp">CONFIGURACIÓN</div>
       <a href="/bellesguard/bancos.html">Bancos</a>
+      <a href="#" class="salir" id="logout">Salir</a>
       </div>
     </aside>
 
@@ -369,16 +369,36 @@ $('gateForm').addEventListener('submit', async (e) => {
   btn.disabled = false;
 });
 
-$('logout').addEventListener('click', async () => {
-  await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
-  location.reload();
-});
-
 // ================= DATOS =================
 async function load() {
-  const res = await api('/api/data');
-  STATE = await res.json();
+  const [datos, re] = await Promise.all([api('/api/data'), api('/api/realestate')]);
+  STATE = await datos.json();
+  // Valor e hipoteca por propiedad y mes: la pestana Real Estate es la fuente de verdad.
+  STATE.re = {};
+  try {
+    const { rows } = await re.json();
+    for (const r of rows || []) {
+      (STATE.re[r.month] = STATE.re[r.month] || {})[r.prop] = {
+        value: Number(r.valor) || 0,
+        debt: Number(r.hipoteca) || 0,
+      };
+    }
+  } catch { /* si falla, renderProps cae a la tabla properties */ }
   render();
+}
+
+// Valor y deuda del mes en curso segun Real Estate; si ese mes no tiene fila, el ultimo que la tenga.
+function carteraDelMes() {
+  const P = STATE.properties || [];
+  const cur = currentRow();
+  const meses = Object.keys(STATE.re || {}).sort().filter((m) => !cur || m <= cur.month);
+  return P.map((p, i) => {
+    for (let k = meses.length - 1; k >= 0; k--) {
+      const c = STATE.re[meses[k]][i];
+      if (c && (c.value || c.debt)) return { ...p, value: c.value, debt: c.debt };
+    }
+    return p;   // sin dato en Real Estate: se queda el de la ficha
+  });
 }
 
 const actualRows = () => STATE.series.filter((r) => r.is_actual);
@@ -387,11 +407,10 @@ const currentRow = () => { const a = actualRows(); return a[a.length - 1] || nul
 function derived() {
   const cur = currentRow();
   if (!cur) return null;
-  const propDebt = STATE.properties.reduce((s, p) => s + (p.debt || 0), 0);
   const gross = cur.net - cur.debt;                       // debt es negativo
   const liquidity = cur.caja + cur.inv_fin;
   const lifestyle = parseNum(STATE.meta.lifestyle_cost) || 100000;
-  return { cur, gross, liquidity, lifestyle, propDebt };
+  return { cur, gross, liquidity, lifestyle };
 }
 
 // ================= RENDER =================
@@ -400,7 +419,7 @@ function render() {
   if (!d) return;
   const { cur, gross, liquidity, lifestyle } = d;
 
-  $('asOf').textContent = lbl(cur.month);
+  $('asof').textContent = lbl(cur.month);
   $('netBig').textContent = eur(cur.net);
   $('kGross').textContent = eur(gross);
   $('kDebt').textContent = eur(cur.debt);
@@ -454,7 +473,7 @@ function renderAlloc(cur) {
 }
 
 function renderProps() {
-  const P = STATE.properties;
+  const P = carteraDelMes();
   const tb = $('props');
 
   tb.innerHTML = P.map((p) => {
@@ -686,6 +705,29 @@ async function runChat(mode, chipLabel) {
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
   else arrancar();
+})();
+</script>
+<script>
+/* Comunes a todas las paginas: cerrar sesion y, donde nadie lo rellena, el mes en curso. */
+(function () {
+  'use strict';
+  const salir = document.getElementById('logout');
+  if (salir) salir.addEventListener('click', async function (e) {
+    e.preventDefault();
+    try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
+    location.href = '/bellesguard/';
+  });
+
+  const mes = document.querySelector('#asof[data-auto]');
+  if (!mes) return;
+  const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  fetch('/api/data', { credentials: 'same-origin' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      const s = d && d.meta && d.meta.current_month;
+      if (s) mes.textContent = MES[+s.slice(5) - 1] + " '" + s.slice(2, 4);
+    })
+    .catch(function () {});
 })();
 </script>
 </body>
