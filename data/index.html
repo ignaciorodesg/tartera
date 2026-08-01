@@ -47,17 +47,6 @@
   /* --- Árbol de navegación --- */
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
   .layout > main{min-width:0;}
-  .supuestos{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:flex-end;margin-bottom:20px;}
-  .sp{display:flex;flex-direction:column;gap:5px;}
-  .sp label{font-size:9.5px;letter-spacing:.13em;color:var(--ink-mute);}
-  .sp input{width:92px;padding:6px 8px;border:.5px solid var(--line);border-radius:4px;background:var(--panel);
-    font-family:inherit;font-size:13px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);outline:none;}
-  .sp input:focus{border-color:var(--mint);}
-  .btn-sp{padding:7px 14px;border:.5px solid var(--line);border-radius:18px;background:none;
-    font-family:inherit;font-size:11px;letter-spacing:.06em;color:var(--soft);cursor:pointer;}
-  .btn-sp:hover{border-color:var(--mint);color:var(--mint);}
-  .sp-nota{margin-top:14px;font-size:11.5px;line-height:1.7;color:var(--ink-mute);}
-  .sp-nota b{color:var(--ink);font-weight:500;}
   /* Banner apaisado: la imagen es 16:9, el recorte se queda en la cresta */
   .cresta{margin:0;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
   .cresta img{width:100%;height:132px;object-fit:cover;object-position:center 0;
@@ -224,6 +213,7 @@
         <a href="/data/memento.html">Memento Mori</a>
       <div class="grp">CONFIGURACIÓN</div>
       <a href="/data/bancos.html">Bancos</a>
+      <a href="/data/proyeccion.html">Proyección</a>
       <a href="#" class="salir" id="logout">Salir</a>
       </div>
     </aside>
@@ -249,15 +239,7 @@
 
     <div class="chapter-rule">EVOLUCIÓN</div>
     <section><div class="card">
-      <div class="supuestos">
-        <div class="sp"><label>INMUEBLES %/AÑO</label><input id="s_re" inputmode="decimal"></div>
-        <div class="sp"><label>FONDOS %/AÑO</label><input id="s_fin" inputmode="decimal"></div>
-        <div class="sp"><label>HORIZONTE (AÑOS)</label><input id="s_anos" inputmode="decimal"></div>
-        <span class="state" id="spState"></span>
-        <button class="btn-sp" id="spGuardar">GUARDAR SUPUESTOS</button>
-      </div>
       <div class="chartbox"><canvas id="cNet"></canvas></div>
-      <div class="sp-nota" id="spNota"></div>
     </div></section>
 
     <div class="chapter-rule">COMPOSICIÓN</div>
@@ -500,59 +482,6 @@ function proyectar() {
   return out;
 }
 
-function pintarSupuestos() {
-  const S = supuestos();
-  $('s_re').value = nFmt(S.re);
-  $('s_fin').value = nFmt(S.fin);
-  $('s_anos').value = String(S.anos);
-
-  const cur = currentRow(), P = STATE.proj || [];
-  if (!cur || !P.length) return;
-  const fin = P[P.length - 1];
-  const n = P.length;
-  const cagr = (Math.pow(fin.net / cur.net, 12 / n) - 1) * 100;
-  const amort = amortMensual(cuadroDeuda());
-  $('spNota').innerHTML =
-    `Desde <b>${lbl(cur.month)}</b> (${eur(cur.net)}) hasta <b>${lbl(fin.month)}</b>: <b>${eur(fin.net)}</b>, ` +
-    `un ${pct(cagr / 100)} anual. Los inmuebles se revalorizan un ${nFmt(S.re)}% al año y la hipoteca baja ` +
-    `según tu cuadro de amortización, que llega hasta ${lbl(Object.keys(cuadroDeuda()).sort().pop() || cur.month)}; a partir de ahí, ${eur(Math.abs(amort))}/mes. ` +
-    `Empresas (${eur(cur.empresas)}) y activos físicos (${eur(cur.activos)}) se mantienen planos: ` +
-    `son valoraciones, no precios de mercado, y la caja se queda como está: no hay supuesto de ahorro. ` +
-    `No es una predicción, es lo que sale de estos supuestos.`;
-
-  const t = tasaTendencia(), T = STATE.tend || [];
-  if (t && T.length) {
-    const anual = (Math.exp(t.g * 12) - 1) * 100;
-    $('spNota').innerHTML +=
-      `<br><br>La línea punteada clara es otra cosa: la <b>pendiente de tus últimos ${t.meses} meses</b> ` +
-      `extrapolada sin más, un ${pct(anual / 100)} anual, que llevaría a <b>${eur(T[T.length - 1].net)}</b>. ` +
-      `Sirve de contraste, pero ese ritmo viene de revalorizaciones y entradas puntuales, no de crecimiento recurrente: ` +
-      `tomarla como previsión sería optimista.`;
-  }
-}
-
-async function guardarSupuestos() {
-  const meta = {
-    proy_re: String(nParse($('s_re').value)),
-    proy_fin: String(nParse($('s_fin').value)),
-    proy_anos: String(Math.min(30, Math.max(1, Math.round(nParse($('s_anos').value)) || 5))),
-  };
-  $('spState').textContent = 'Guardando…';
-  try {
-    const r = await api('/api/data', { method: 'PUT', body: JSON.stringify({ meta }) });
-    if (!r.ok) throw new Error('save');
-    Object.assign(STATE.meta, meta);
-    render();
-    $('spState').textContent = 'Guardado';
-    setTimeout(() => { $('spState').textContent = ''; }, 2500);
-  } catch { $('spState').textContent = 'No se pudo guardar'; }
-}
-
-$('spGuardar').addEventListener('click', guardarSupuestos);
-['s_re', 's_fin', 's_anos'].forEach((id) =>
-  $(id).addEventListener('change', () => { STATE.meta[{s_re:'proy_re',s_fin:'proy_fin',s_anos:'proy_anos'}[id]] = String(nParse($(id).value)); render(); })
-);
-
 // Tendencia: pendiente histórica del patrimonio neto, ajustada por mínimos cuadrados sobre
 // el logaritmo (crecimiento compuesto) de los últimos años. Es extrapolación pura, sin supuestos.
 const TEND_MESES = 60;
@@ -619,7 +548,6 @@ function render() {
   renderAlloc(cur);
   renderProps();
   renderCharts();
-  pintarSupuestos();
   renderNote();
 }
 

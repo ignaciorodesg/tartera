@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow"><title>Bancos · Tartera</title>
+<meta name="robots" content="noindex, nofollow"><title>Proyección · Tartera</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -159,6 +159,14 @@
   .state{font-size:12px;color:var(--mute);margin-left:12px;}
   .state.err{color:var(--red);} .state.ok{color:var(--mint);}
   .vacio{text-align:center;padding:36px;color:var(--mute);font-size:13px;line-height:1.7;}
+  .sp{display:flex;flex-direction:column;gap:5px;}
+  .sp label{font-size:9.5px;letter-spacing:.13em;color:var(--mute);}
+  .sp input{width:110px;padding:6px 8px;border:.5px solid var(--line);border-radius:4px;background:var(--panel);
+    font-family:inherit;font-size:13px;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);outline:none;}
+  .sp input:focus{border-color:var(--mint);}
+  .nota{font-size:12.5px;line-height:1.8;color:var(--soft);}
+  .nota p{margin-bottom:12px;} .nota p:last-child{margin-bottom:0;}
+  .nota b{color:var(--ink);font-weight:500;}
 </style></head><body>
 <div class="wrap layout"><aside>
       <div class="marca"><span class="logo">TARTERA</span><span class="mes num" id="asof" data-auto></span></div>
@@ -176,193 +184,157 @@
       <a href="/data/familia.html">Seguros</a>
       <a href="/data/memento.html">Memento Mori</a>
       <div class="grp">CONFIGURACIÓN</div>
-      <a href="/data/bancos.html" class="on">Bancos</a>
-      <a href="/data/proyeccion.html">Proyección</a>
+      <a href="/data/bancos.html">Bancos</a>
+      <a href="/data/proyeccion.html" class="on">Proyección</a>
       <a href="#" class="salir" id="logout">Salir</a>
 </div></aside><main>
-<div class="hero"><div class="eyebrow">CONFIGURACIÓN</div><h1>Bancos</h1>
-<div class="sub">Ficha de cada entidad: cuenta, sucursal, persona de contacto y logo.
-El código corto es el que enlaza con el resto de páginas — es el que ya usas en Seguros (BK, BS, KB).</div></div>
+<div class="hero"><div class="eyebrow">CONFIGURACIÓN</div><h1>Proyección</h1>
+<div class="sub">Los supuestos con los que se dibuja la línea discontinua del dashboard.
+Se guardan aquí y el gráfico los usa; no hay ningún número escondido en el código.</div></div>
 
-<div class="kpis" id="kpis"></div>
-
-<div class="rule">NUEVA ENTIDAD</div>
-<section><div class="alta">
-  <div class="campos">
-    <div class="campo"><label>CÓDIGO</label><input id="n-codigo" placeholder="BK" maxlength="10"></div>
-    <div class="campo" style="grid-column:span 2"><label>NOMBRE</label><input id="n-nombre" placeholder="Bankinter"></div>
-    <div class="campo"><label>CUENTA</label><input id="n-cuenta" placeholder="**22"></div>
-    <div class="campo" style="grid-column:span 2"><label>SUCURSAL</label><input id="n-sucursal" placeholder="Diagonal 640, Barcelona"></div>
-    <div class="campo"><label>RESPONSABLE</label><input id="n-responsable" placeholder="Nombre del gestor"></div>
-    <div class="campo"><label>TELÉFONO</label><input id="n-telefono" placeholder="+34 ..."></div>
-    <div class="campo"><label>EMAIL</label><input id="n-email" placeholder="gestor@banco.es"></div>
-    <div class="campo" style="grid-column:span 2"><label>LOGO (URL HTTPS)</label><input id="n-logo" placeholder="https://..."></div>
-  </div>
-  <button class="btn" id="anadir">AÑADIR ENTIDAD</button>
+<div class="barra">
+  <div class="sp"><label>INMUEBLES %/AÑO</label><input id="s_re" inputmode="decimal"></div>
+  <div class="sp"><label>FONDOS %/AÑO</label><input id="s_fin" inputmode="decimal"></div>
+  <div class="sp"><label>HORIZONTE (AÑOS)</label><input id="s_anos" inputmode="decimal"></div>
+  <span class="sep"></span>
   <span class="state" id="state"></span>
-</div></section>
+  <button class="btn" id="guardar">GUARDAR</button>
+</div>
 
-<div class="rule">ENTIDADES</div>
-<section><div class="fichas" id="fichas"></div>
-  <div class="vacio" id="vacio" style="display:none">
-    Todavía no hay entidades. Añade la primera arriba.
-  </div>
-</section>
+<div class="rule">RESULTADO</div>
+<section><div class="card"><div class="kpis" id="kpis"></div><div class="nota" id="nota"></div></div></section>
+
+<div class="rule">CÓMO SE CALCULA</div>
+<section><div class="card"><div class="nota" id="metodo"></div></div></section>
 
 <footer><span>Tartera · configuración</span><span id="foot"></span></footer>
 </main></div>
 
 <script>
-/* Formato español en toda la app: miles con punto, decimales con coma.
-   nFmt  -> numero a texto ("1.234.567,89")
-   nParse-> texto a numero, aceptando ambos formatos sin ambiguedad */
-window.nFmt = function (n, dec) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return '';
-  const d = dec === undefined ? (Number.isInteger(v) ? 0 : 2) : dec;
-  return new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: 'always' }).format(v);
-};
-window.nParse = function (s) {
-  let t = String(s == null ? '' : s).replace(/[^\d.,-]/g, '');
-  if (!t) return 0;
-  const neg = /^-/.test(t);
-  t = t.replace(/-/g, '');
-  const punto = t.lastIndexOf('.'), coma = t.lastIndexOf(',');
-  if (punto > -1 && coma > -1) {
-    // El ultimo separador manda: el otro es de miles
-    t = coma > punto ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
-  } else if (coma > -1) {
-    t = t.replace(',', '.');
-  } else if (punto > -1) {
-    // Solo puntos: es agrupacion de miles si van en grupos exactos de 3
-    if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
-  }
-  const n = parseFloat(t);
-  return Number.isFinite(n) ? (neg ? -n : n) : 0;
-};
-</script>
-<script>
 'use strict';
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let BANCOS = [];
-
-const CAMPOS = [
-  ['cuenta','Cuenta'], ['sucursal','Sucursal'], ['responsable','Responsable'],
-  ['telefono','Teléfono'], ['email','Email'], ['notas','Notas'], ['logo','Logo']
-];
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const lbl = s => MES[+s.slice(5)-1] + " '" + s.slice(2,4);
+const eur = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0,useGrouping:'always'}).format(n||0);
+const pct = n => (n*100).toFixed(2).replace('.',',')+'%';
+const SUP_DEF = { re: 3, fin: 8, anos: 5 };
+const TEND_MESES = 60;
+let D = null, RE = null;
 
 async function api(p, o) {
   const r = await fetch(p, {credentials:'same-origin', headers:{'Content-Type':'application/json'}, ...(o||{})});
   if (r.status === 401) { location.href = '/data/'; throw new Error('no_auth'); }
   return r;
 }
-function estado(t, cls) { const e=$('state'); e.textContent=t||''; e.className='state'+(cls?' '+cls:'');
-  if (t && cls==='ok') setTimeout(()=>{ if(e.textContent===t) e.textContent=''; }, 2600); }
+function estado(t, cls) { const e=$('state'); e.textContent=t||''; e.className='state'+(cls?' '+cls:''); }
 
-async function cargar() {
-  try { BANCOS = (await (await api('/api/bancos')).json()).rows || []; }
-  catch (e) { estado('Sin conexión con la base', 'err'); }
-  pintar();
+const sigMes = m => { let [y,x] = m.split('-').map(Number); x++; if (x>12){x=1;y++;} return y+'-'+String(x).padStart(2,'0'); };
+const actuales = () => D.series.filter(r => r.is_actual);
+const actual = () => actuales().slice(-1)[0];
+
+function supuestos() {
+  const m = D.meta || {};
+  return { re: nParse(m.proy_re ?? SUP_DEF.re), fin: nParse(m.proy_fin ?? SUP_DEF.fin),
+           anos: Math.min(30, Math.max(1, Math.round(nParse(m.proy_anos ?? SUP_DEF.anos)) || SUP_DEF.anos)) };
+}
+
+function cuadroDeuda() {
+  const t = {};
+  for (const r of RE.rows || []) t[r.month] = (t[r.month] || 0) + (Number(r.hipoteca) || 0);
+  return t;
+}
+function amortMensual(c) {
+  const m = Object.keys(c).sort();
+  if (m.length < 13) return 0;
+  return (c[m[m.length-1]] - c[m[m.length-13]]) / 12;
+}
+
+function proyectar(S) {
+  const cur = actual(); if (!cur) return [];
+  const gRe = Math.pow(1+S.re/100, 1/12), gFin = Math.pow(1+S.fin/100, 1/12);
+  const cuadro = cuadroDeuda(), amort = amortMensual(cuadro);
+  let valor = cur.real_estate - cur.debt, deuda = cur.debt, inv = cur.inv_fin;
+  const caja = cur.caja, empresas = cur.empresas, activos = cur.activos;
+  const out = []; let mes = cur.month;
+  for (let i = 0; i < S.anos*12; i++) {
+    mes = sigMes(mes);
+    valor *= gRe;
+    deuda = mes in cuadro ? cuadro[mes] : Math.min(0, deuda + amort);
+    inv *= gFin;
+    const re = valor + deuda;
+    out.push({month:mes, real_estate:re, debt:deuda, inv_fin:inv, caja, empresas, activos,
+              net: re + empresas + inv + caja + activos});
+  }
+  return out;
+}
+
+function tasaTendencia() {
+  const v = actuales().filter(r => r.net > 0).slice(-TEND_MESES);
+  if (v.length < 24) return null;
+  const n = v.length; let sx=0, sy=0, sxy=0, sxx=0;
+  v.forEach((r,i) => { const y = Math.log(r.net); sx+=i; sy+=y; sxy+=i*y; sxx+=i*i; });
+  const den = n*sxx - sx*sx;
+  return den ? { g: (n*sxy - sx*sy)/den, meses: n } : null;
 }
 
 function pintar() {
-  const conGestor = BANCOS.filter(b => b.responsable).length;
-  const conLogo = BANCOS.filter(b => b.logo).length;
-  $('kpis').innerHTML = `
-    <div class="kpi"><div class="lab">ENTIDADES</div><div class="v num">${BANCOS.length}</div>
-      <div class="s">Registradas</div></div>
-    <div class="kpi"><div class="lab">CON RESPONSABLE</div><div class="v num">${conGestor}</div>
-      <div class="s">Persona de contacto</div></div>
-    <div class="kpi"><div class="lab">CON LOGO</div><div class="v num">${conLogo}</div>
-      <div class="s">Para el resto de páginas</div></div>`;
+  const S = supuestos(), cur = actual(), P = proyectar(S);
+  $('s_re').value = nFmt(S.re); $('s_fin').value = nFmt(S.fin); $('s_anos').value = String(S.anos);
+  $('foot').textContent = 'Ancla: ' + lbl(cur.month);
+  if (!P.length) return;
+  const fin = P[P.length-1], n = P.length;
+  const cagr = Math.pow(fin.net/cur.net, 12/n) - 1;
+  const t = tasaTendencia();
+  const tend = t ? cur.net * Math.exp(t.g * n) : null;
 
-  $('vacio').style.display = BANCOS.length ? 'none' : '';
-  $('fichas').innerHTML = BANCOS.map(b => {
-    const inicial = esc((b.nombre || '?').trim()[0].toUpperCase());
-    const logo = b.logo
-      ? `<img class="logo" src="${esc(b.logo)}" alt="${esc(b.nombre)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'logo vacio',textContent:'${inicial}'}))">`
-      : `<div class="logo vacio">${inicial}</div>`;
-    return `<div class="banco" data-id="${b.id}">
-      <div class="cab">${logo}
-        <div><h3 class="ed" data-id="${b.id}" data-campo="nombre">${esc(b.nombre)}</h3>
-          <div class="cod ed" data-id="${b.id}" data-campo="codigo">${esc(b.codigo) || 'SIN CÓDIGO'}</div></div>
-      </div>
-      <dl>${CAMPOS.map(([k,t]) =>
-        `<dt>${t}</dt><dd class="ed" data-id="${b.id}" data-campo="${k}">${esc(b[k]) || '—'}</dd>`).join('')}
-      </dl>
-      <div class="pie"><button class="btn mini" data-borrar="${b.id}">Borrar</button></div>
-    </div>`;
-  }).join('');
-  $('foot').textContent = BANCOS.length + ' entidades';
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="lab">HOY · ${lbl(cur.month).toUpperCase()}</div><div class="v num">${eur(cur.net)}</div><div class="s">Patrimonio neto</div></div>
+    <div class="kpi"><div class="lab">A ${lbl(fin.month).toUpperCase()}</div><div class="v num">${eur(fin.net)}</div><div class="s">Con estos supuestos</div></div>
+    <div class="kpi"><div class="lab">CRECIMIENTO</div><div class="v num">${pct(cagr)}</div><div class="s">Anual compuesto</div></div>
+    <div class="kpi"><div class="lab">TENDENCIA HISTÓRICA</div><div class="v num">${tend ? eur(tend) : '—'}</div><div class="s">${t ? pct(Math.exp(t.g*12)-1) + ' anual, últimos ' + t.meses + ' meses' : 'sin datos suficientes'}</div></div>`;
+
+  const cuadro = cuadroDeuda(), amort = amortMensual(cuadro);
+  const ultCuadro = Object.keys(cuadro).sort().pop();
+  $('nota').innerHTML = `De <b>${eur(cur.net)}</b> a <b>${eur(fin.net)}</b> en ${S.anos} años.`;
+  $('metodo').innerHTML = `
+    <p><b>Inmuebles.</b> El valor de mercado (${eur(cur.real_estate - cur.debt)}) crece un ${nFmt(S.re)}% anual.
+    La hipoteca no se estima: sale de tu cuadro de amortización hasta <b>${lbl(ultCuadro)}</b>, y a partir de ahí
+    baja ${eur(Math.abs(amort))}/mes, la pendiente de sus últimos doce meses.</p>
+    <p><b>Inversiones financieras.</b> ${eur(cur.inv_fin)} creciendo un ${nFmt(S.fin)}% anual.</p>
+    <p><b>Empresas</b> (${eur(cur.empresas)}) <b>y activos físicos</b> (${eur(cur.activos)}) se quedan planos:
+    son valoraciones, no precios de mercado. <b>La caja</b> (${eur(cur.caja)}) tampoco crece: no hay supuesto de ahorro.</p>
+    <p><b>La línea gris clara del dashboard es otra cosa:</b> la pendiente de tus últimos ${t ? t.meses : TEND_MESES} meses
+    extrapolada sin más. Ese ritmo viene de revalorizaciones y entradas puntuales, no de crecimiento recurrente:
+    como previsión sería optimista. Está ahí para contrastar, no para creérsela.</p>`;
 }
 
-$('anadir').addEventListener('click', async () => {
-  const nombre = $('n-nombre').value.trim();
-  if (!nombre) { estado('Falta el nombre', 'err'); $('n-nombre').focus(); return; }
-  const btn = $('anadir'); btn.disabled = true; estado('Guardando…');
+async function guardar() {
+  const meta = { proy_re: String(nParse($('s_re').value)), proy_fin: String(nParse($('s_fin').value)),
+                 proy_anos: String(Math.min(30, Math.max(1, Math.round(nParse($('s_anos').value)) || 5))) };
+  estado('Guardando…');
   try {
-    const r = await api('/api/bancos', {method:'POST', body: JSON.stringify({
-      codigo: $('n-codigo').value, nombre, cuenta: $('n-cuenta').value,
-      sucursal: $('n-sucursal').value, responsable: $('n-responsable').value,
-      telefono: $('n-telefono').value, email: $('n-email').value, logo: $('n-logo').value
-    })});
-    if (!r.ok) throw new Error('alta');
-    BANCOS = (await (await api('/api/bancos')).json()).rows;
-    ['n-codigo','n-nombre','n-cuenta','n-sucursal','n-responsable','n-telefono','n-email','n-logo']
-      .forEach(i => $(i).value = '');
-    pintar(); estado('Entidad añadida', 'ok');
-  } catch (e) { estado('No se pudo añadir', 'err'); }
-  btn.disabled = false;
-});
+    const r = await api('/api/data', {method:'PUT', body: JSON.stringify({meta})});
+    if (!r.ok) throw new Error('save');
+    Object.assign(D.meta, meta); pintar(); estado('Guardado', 'ok');
+    setTimeout(() => estado(''), 2500);
+  } catch { estado('No se pudo guardar', 'err'); }
+}
 
-$('fichas').addEventListener('click', async e => {
-  const del = e.target.closest('[data-borrar]');
-  if (del) {
-    if (!confirm('¿Borrar esta entidad?')) return;
-    try {
-      await api('/api/bancos?id=' + del.dataset.borrar, {method:'DELETE'});
-      BANCOS = (await (await api('/api/bancos')).json()).rows;
-      pintar(); estado('Borrada', 'ok');
-    } catch (err) { estado('No se pudo borrar', 'err'); }
-    return;
-  }
+$('guardar').addEventListener('click', guardar);
+['s_re','s_fin','s_anos'].forEach(id => $(id).addEventListener('change', () => {
+  D.meta[{s_re:'proy_re', s_fin:'proy_fin', s_anos:'proy_anos'}[id]] = String(nParse($(id).value)); pintar();
+}));
 
-  const el = e.target.closest('.ed');
-  if (!el || el.querySelector('input')) return;
-  const id = +el.dataset.id, campo = el.dataset.campo;
-  const b = BANCOS.find(x => x.id === id);
-  if (!b) return;
-
-  const inp = document.createElement('input');
-  inp.value = b[campo] ?? '';
-  el.textContent = ''; el.appendChild(inp); inp.focus(); inp.select();
-
-  let hecho = false;
-  const cerrar = async guardar => {
-    if (hecho) return; hecho = true;
-    const nuevo = inp.value.trim();
-    if (!guardar || nuevo === (b[campo] ?? '')) { pintar(); return; }
-    if (campo === 'nombre' && !nuevo) { estado('El nombre no puede quedar vacío', 'err'); pintar(); return; }
-    const previo = b[campo];
-    b[campo] = nuevo;
-    estado('Guardando…');
-    try {
-      const r = await api('/api/bancos', {method:'PUT', body: JSON.stringify(b)});
-      if (!r.ok) throw new Error('put');
-      BANCOS = (await (await api('/api/bancos')).json()).rows;
-      pintar(); estado('Guardado', 'ok');
-    } catch (err) { b[campo] = previo; pintar(); estado('No se pudo guardar', 'err'); }
-  };
-  inp.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter') { ev.preventDefault(); cerrar(true); }
-    if (ev.key === 'Escape') { ev.preventDefault(); cerrar(false); }
-  });
-  inp.addEventListener('blur', () => cerrar(true));
-});
-
-cargar();
+(async () => {
+  estado('Cargando…');
+  try {
+    const [a, b] = await Promise.all([api('/api/data'), api('/api/realestate')]);
+    D = await a.json(); RE = await b.json();
+    estado(''); pintar();
+  } catch (e) { estado('No se pudieron cargar los datos', 'err'); }
+})();
 </script>
+
 <script>
 /* Negativos en rojo, en toda la página.
    Se reaplica solo cuando el DOM cambia (al editar o al recargar tablas). */
