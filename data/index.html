@@ -522,6 +522,16 @@ function pintarSupuestos() {
     `según tu cuadro de amortización, que llega hasta ${lbl(Object.keys(cuadroDeuda()).sort().pop() || cur.month)}; a partir de ahí, ${eur(Math.abs(amort))}/mes. ` +
     `Empresas (${eur(cur.empresas)}) y activos físicos (${eur(cur.activos)}) se mantienen planos: ` +
     `son valoraciones, no precios de mercado. No es una predicción, es lo que sale de estos cuatro supuestos.`;
+
+  const t = tasaTendencia(), T = STATE.tend || [];
+  if (t && T.length) {
+    const anual = (Math.exp(t.g * 12) - 1) * 100;
+    $('spNota').innerHTML +=
+      `<br><br>La línea punteada clara es otra cosa: la <b>pendiente de tus últimos ${t.meses} meses</b> ` +
+      `extrapolada sin más, un ${pct(anual / 100)} anual, que llevaría a <b>${eur(T[T.length - 1].net)}</b>. ` +
+      `Sirve de contraste, pero ese ritmo viene de revalorizaciones y entradas puntuales, no de crecimiento recurrente: ` +
+      `tomarla como previsión sería optimista.`;
+  }
 }
 
 async function guardarSupuestos() {
@@ -547,9 +557,39 @@ $('spGuardar').addEventListener('click', guardarSupuestos);
   $(id).addEventListener('change', () => { STATE.meta[{s_re:'proy_re',s_fin:'proy_fin',s_ahorro:'proy_ahorro',s_anos:'proy_anos'}[id]] = String(nParse($(id).value)); render(); })
 );
 
+// Tendencia: pendiente histórica del patrimonio neto, ajustada por mínimos cuadrados sobre
+// el logaritmo (crecimiento compuesto) de los últimos años. Es extrapolación pura, sin supuestos.
+const TEND_MESES = 60;
+
+function tasaTendencia() {
+  const a = actualRows().filter((r) => r.net > 0);
+  const v = a.slice(-TEND_MESES);
+  if (v.length < 24) return null;
+  const n = v.length;
+  let sx = 0, sy = 0, sxy = 0, sxx = 0;
+  v.forEach((r, i) => { const y = Math.log(r.net); sx += i; sy += y; sxy += i * y; sxx += i * i; });
+  const den = n * sxx - sx * sx;
+  if (!den) return null;
+  return { g: (n * sxy - sx * sy) / den, meses: n };   // g = crecimiento logarítmico mensual
+}
+
+function proyectarTendencia() {
+  const t = tasaTendencia(), cur = currentRow();
+  if (!t || !cur) return [];
+  const meses = supuestos().anos * 12;
+  const out = [];
+  let mes = cur.month;
+  for (let i = 1; i <= meses; i++) {
+    mes = sigMes(mes);
+    out.push({ month: mes, net: cur.net * Math.exp(t.g * i) });
+  }
+  return out;
+}
+
 // ================= RENDER =================
 function render() {
   STATE.proj = proyectar();
+  STATE.tend = proyectarTendencia();
   const d = derived();
   if (!d) return;
   const { cur, gross, liquidity, lifestyle } = d;
@@ -666,6 +706,12 @@ function renderCharts() {
           g.addColorStop(0, 'rgba(15,110,86,0.14)'); g.addColorStop(1, 'rgba(15,110,86,0)'); return g; } },
       { label: 'Proyección', data: S.map((r, i) => i >= cutIdx ? r.net : null),
         borderColor: css('--ink-mute'), borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, tension: 0.25 },
+      { label: 'Tendencia histórica', data: (() => {
+          const T = STATE.tend || [];
+          const m = new Map(T.map((r) => [r.month, r.net]));
+          return S.map((r, i) => i < cutIdx ? null : (i === cutIdx ? r.net : (m.get(r.month) ?? null)));
+        })(),
+        borderColor: css('--line'), borderWidth: 1.5, borderDash: [2, 3], pointRadius: 0, tension: 0.25 },
     ] },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       scales: axis, plugins: { legend, tooltip } },
