@@ -346,7 +346,8 @@ function columnas(ult) {
 }
 
 function detalle() {
-  const ult = act.slice(-24);
+  // Todo el historico real, de 2020 al mes en curso: el scroll de la tabla lo recorre entero.
+  const ult = act;
   const cols = columnas(ult);
 
   $('detHead').innerHTML = '<tr><th>Mes</th>' + cols.map(c => {

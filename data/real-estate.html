@@ -439,7 +439,8 @@ $('tabs').addEventListener('click', e => {
 const EDITABLES = { 1:0, 2:1, 3:2, 4:3, 6:4, 7:5 };
 
 function detalle() {
-  const ult = act.slice(-24).reverse();
+  // Todo el historico real, de 2020 al mes en curso: el scroll de la tabla lo recorre entero.
+  const ult = act.slice().reverse();
   $('detail').innerHTML = ult.map(r => {
     const p = r[1][sel], c = cf(p);
     const td = (col, val) => `<td class="ed" data-mes="${r[0]}" data-campo="${EDITABLES[col]}">${val ? eur(val) : '—'}</td>`;
@@ -452,7 +453,7 @@ function detalle() {
 
   const s = k => ult.reduce((a, r) => a + r[1][sel][k], 0);
   const sc = ult.reduce((a, r) => a + cf(r[1][sel]), 0);
-  $('detailFoot').innerHTML = `<tr><td>Últimos 24 meses</td>
+  $('detailFoot').innerHTML = `<tr><td>Histórico completo</td>
     <td>${eur(s(0))}</td><td>${eur(s(1))}</td><td>${eur(s(2))}</td><td>${eur(s(3))}</td>
     <td class="${sc >= 0 ? 'pos' : 'neg'}">${eur(sc)}</td><td colspan="3"></td></tr>`;
 }
