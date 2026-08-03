@@ -167,8 +167,8 @@
     cursor:pointer;transition:border-color .15s, box-shadow .15s;position:relative;}
   .caja:hover{border-color:var(--mint-soft);}
   .caja.sel{border-color:var(--mint);box-shadow:inset 0 0 0 1px var(--mint);}
-  .caja .nom{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:2px;padding-right:44px;}
-  .caja .tip{font-size:10px;letter-spacing:.1em;color:var(--mute);margin-bottom:12px;}
+  .caja .nom{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:12px;padding-right:44px;}
+  .caja .tip{font-size:10px;letter-spacing:.1em;color:var(--mute);margin:-10px 0 12px;}
   .caja .imp{font-family:'Fraunces',Georgia,serif;font-size:20px;line-height:1;margin-bottom:6px;}
   .caja .det{font-size:11px;color:var(--soft);line-height:1.6;}
   .caja .acc{position:absolute;top:12px;right:12px;display:flex;gap:5px;opacity:0;transition:opacity .15s;}
@@ -209,7 +209,8 @@
 </div></aside><main>
 <div class="hero"><div class="eyebrow">PERSONAL</div><h1>Seguros</h1>
 <div class="sub">Una caja por activo asegurado con la póliza que tiene en curso. En rojo, lo que
-está sin cubrir. Haz clic en una caja para ver su histórico de recibos.</div></div>
+está sin cubrir. Haz clic en una caja para ver su histórico. La vigencia sale de la fecha del recibo
+más los meses de cobertura, y esa cobertura se edita en la tabla.</div></div>
 
 <div class="kpis" id="kpis"></div>
 
@@ -227,7 +228,8 @@ está sin cubrir. Haz clic en una caja para ver su histórico de recibos.</div><
   <div class="hint" id="hintDet"></div>
   <div style="overflow-x:auto"><table>
     <thead><tr><th>Fecha</th><th>Concepto</th><th>Asegurado</th><th>Banco</th>
-      <th>Importe</th><th>Estado</th><th>PDF</th><th></th></tr></thead>
+      <th>Importe</th><th title="Meses de cobertura desde la fecha del recibo">Cobertura</th>
+      <th>Estado</th><th>PDF</th><th></th></tr></thead>
     <tbody id="tabla"></tbody><tfoot id="pie"></tfoot>
   </table></div>
 </div></section>
@@ -240,6 +242,7 @@ está sin cubrir. Haz clic en una caja para ver su histórico de recibos.</div><
     <div class="campo"><label>ASEGURADO</label><select id="n-asegurado"></select></div>
     <div class="campo"><label>IMPORTE</label><input id="n-importe" inputmode="decimal" placeholder="-300"></div>
     <div class="campo"><label>BANCO</label><input id="n-banco" placeholder="BK"></div>
+    <div class="campo"><label>COBERTURA (MESES)</label><input id="n-meses" inputmode="numeric" value="12"></div>
     <div class="campo" style="grid-column:span 2"><label>PDF DE LA PÓLIZA (OPCIONAL)</label>
       <input type="file" id="n-pdf" accept="application/pdf,.pdf"></div>
   </div>
@@ -410,7 +413,7 @@ function pintarCajas() {
         <button class="del" data-borrar-activo="${a.id}" title="Eliminar activo">Borrar</button>
       </div>
       <div class="nom">${escapeHtml(a.nombre)}</div>
-      <div class="tip">${escapeHtml((a.tipo || 'ACTIVO').toUpperCase())}</div>
+      ${a.tipo ? `<div class="tip">${escapeHtml(a.tipo.toUpperCase())}</div>` : ''}
       ${cuerpo}</div>`;
   }).join('');
 }
@@ -448,13 +451,14 @@ function pintar() {
       ${c('asegurado', p.asegurado || '—')}
       ${c('banco', p.banco || '—')}
       ${c('importe', eur(p.importe), 'num')}
+      ${c('meses', (p.meses ?? 12) + ' meses', 'num')}
       <td><span class="badge ${v.cls}">${v.txt}</span></td>
       <td>${celdaPdf(p.id)}</td>
       <td><button class="btn mini" data-borrar="${p.id}">Borrar</button></td></tr>`;
   }).join('');
 
   const sumaLista = lista.filter(esVigente).reduce((s,p)=>s+Number(p.importe||0),0);
-  $('pie').innerHTML = `<tr><td colspan="4">Vigentes${sel ? ' de ' + escapeHtml(sel) : ''}</td><td>${eur(sumaLista)}</td><td colspan="3"></td></tr>`;
+  $('pie').innerHTML = `<tr><td colspan="4">Vigentes${sel ? ' de ' + escapeHtml(sel) : ''}</td><td>${eur(sumaLista)}</td><td colspan="4"></td></tr>`;
   $('foot').textContent = lista.length + ' pólizas' + (sel ? ' · ' + sel : '');
 
   // El desplegable del alta se nutre de los activos
@@ -541,13 +545,15 @@ $('anadir').addEventListener('click', async () => {
     const r = await api('/api/seguros', {method:'POST', body: JSON.stringify({
       fecha: $('n-fecha').value, concepto,
       asegurado: $('n-asegurado').value, banco: $('n-banco').value,
-      importe: nParse($('n-importe').value)
+      importe: nParse($('n-importe').value),
+      meses: Math.max(0, Math.min(600, Math.round(nParse($('n-meses').value)) || 12))
     })});
     if (!r.ok) throw new Error('alta');
     const { id } = await r.json();
     const pdf = $('n-pdf').files[0];
     POLIZAS = (await (await api('/api/seguros')).json()).rows;
-    ['n-concepto','n-asegurado','n-banco','n-importe'].forEach(i => $(i).value = '');
+    ['n-concepto','n-banco','n-importe'].forEach(i => $(i).value = '');
+    $('n-meses').value = '12';
     pintar(); estado('Póliza añadida', 'ok');
     if (pdf && id) { await subirPdf(id, pdf); $('n-pdf').value = ''; }
   } catch (e) { estado('No se pudo añadir', 'err'); }
@@ -575,7 +581,9 @@ $('tabla').addEventListener('click', async e => {
 
   const inp = document.createElement('input');
   if (td.dataset.tipo === 'date') inp.type = 'date';
-  inp.value = campo === 'importe' ? nFmt(p.importe) : (p[campo] ?? '');
+  inp.value = campo === 'importe' ? nFmt(p.importe)
+            : campo === 'meses' ? String(p.meses ?? 12)
+            : (p[campo] ?? '');
   td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
 
   let hecho = false;
@@ -589,12 +597,16 @@ $('tabla').addEventListener('click', async e => {
     if (String(nuevo) === String(p[campo] ?? '')) { pintar(); return; }
     const previo = p[campo];
     p[campo] = nuevo;
+    // El estado guardado a mano (AGOTADO, VIGENTE) manda sobre el cálculo. Si tocas la fecha
+    // o la cobertura es porque quieres que se recalcule, así que lo soltamos.
+    const previoEstado = p.estado;
+    if (campo === 'meses' || campo === 'fecha') p.estado = '';
     estado('Guardando…');
     try {
       const r = await api('/api/seguros', {method:'PUT', body: JSON.stringify(p)});
       if (!r.ok) throw new Error('put');
       pintar(); estado('Guardado', 'ok');
-    } catch (err) { p[campo] = previo; pintar(); estado('No se pudo guardar', 'err'); }
+    } catch (err) { p[campo] = previo; p.estado = previoEstado; pintar(); estado('No se pudo guardar', 'err'); }
   };
   inp.addEventListener('keydown', ev => {
     if (ev.key === 'Enter') { ev.preventDefault(); cerrar(true); }
