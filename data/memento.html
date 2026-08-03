@@ -269,6 +269,29 @@ $('weeks').innerHTML = html;
     location.href = '/data/';
   });
 
+
+  // --- Sesión: caduca a los 30 min sin tocarla, así que la renovamos mientras haya actividad ---
+  var ultimaActividad = Date.now();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, function () { ultimaActividad = Date.now(); }, { passive: true, capture: true });
+  });
+
+  var LATIDO_MS = 5 * 60 * 1000;      // cada 5 minutos
+  var INACTIVO_MS = 25 * 60 * 1000;   // si lleva más de esto quieto, no renovamos: que expire
+
+  async function latir() {
+    if (Date.now() - ultimaActividad > INACTIVO_MS) return;
+    try {
+      const r = await fetch('/api/login', { credentials: 'same-origin', cache: 'no-store' });
+      const d = await r.json();
+      if (!d.authed) location.href = '/data/';
+    } catch (e) { /* sin red: ya se verá al siguiente intento */ }
+  }
+  setInterval(latir, LATIDO_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { ultimaActividad = Date.now(); latir(); }
+  });
+
   const mes = document.querySelector('#asof[data-auto]');
   if (!mes) return;
   const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
