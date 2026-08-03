@@ -175,7 +175,8 @@
 </div></aside><main>
 <div class="hero"><div class="eyebrow">ENTRADA DE DATOS</div><h1>Cierre de mes</h1>
 <div class="sub">Todos los campos editables en una sola pantalla. Se precargan con el último mes cerrado:
-solo tocas lo que ha cambiado y guardas de una vez.</div></div>
+solo tocas lo que ha cambiado y guardas de una vez. La hipoteca pendiente se teclea una sola vez,
+en el apartado 5, y de ahí alimenta Real Estate y Deuda.</div></div>
 
 <div class="barra">
   <label style="font-size:11px;letter-spacing:.1em;color:var(--mute)">MES</label>
@@ -226,9 +227,12 @@ window.nParse = function (s) {
 <script>
 'use strict';
 const PROPS = ["Bellesguard", "Mandri", "Provenza", "Tartera"];
-const CAMPOS_RE = ["Renta", "Cuota pr\u00e9stamo", "IBI", "Otros gastos", "Valor de mercado", "Hipoteca pendiente"];
-const COLS = {"patrimonial": ["Bankinter **22", "Santander **XX", "Caixabank **57", "Invertido", "Valor Actual", "33% CP. TUTRAMITEFACIL_ADMIN", "13% APROX. HANALEY_TRAVEL", "0,35% GURUWALK_TRAVEL", "13,04% de 3,75% de PART. C\u00dcIMO_MOBILITY", "XX% SCUBA FINDERS_TRAVEL", "Fondos", "Variaci\u00f3n", "1. ROCKETROI SL", "2. WECITY"], "caja": ["NY @ CB BELL", "NRG @ CB NRG", "NY @CB MAN", "NY @ BK VARIABLE AMERICA, FP", "2.a.a STOCKS", "CASH", "NY @ CA KB 4302", "NY @ CA BK 4317", "AMEX MES", "OTRAS DEUDAS PENDIENTES DE COBRO"], "activos": ["SUZUKI Vitara JLX", "Silence S01", "Bicis", "Husqvarna TE 250", "Tribuna Camp Nou FCB", "Antorcha Ol\u00edmpica Barcelona'92", "Rolex Submariner Black No Date"], "deuda": ["1. BELLESGUARD, 47", "2. MANDRI 29", "3. PROVENZA 280", "4. TARTERA"]};
-const TITULOS = {patrimonial:'2. Financiero', caja:'3. Caja personal', activos:'4. Activos', deuda:'5. Deuda'};
+// La hipoteca pendiente NO está aquí a propósito: se introduce en "5. Deuda" y de ahí
+// va directa a Real Estate. Un solo sitio donde teclearla.
+const CAMPOS_RE = ["Renta", "Cuota pr\u00e9stamo", "IBI", "Otros gastos", "Valor de mercado"];
+const COL_HIPOTECA = 5;
+const COLS = {"patrimonial": ["Bankinter **22", "Santander **XX", "Caixabank **57", "Invertido", "Valor Actual", "33% CP. TUTRAMITEFACIL_ADMIN", "13% APROX. HANALEY_TRAVEL", "0,35% GURUWALK_TRAVEL", "13,04% de 3,75% de PART. C\u00dcIMO_MOBILITY", "XX% SCUBA FINDERS_TRAVEL", "Fondos", "Variaci\u00f3n", "1. ROCKETROI SL", "2. WECITY"], "caja": ["NY @ CB BELL", "NRG @ CB NRG", "NY @CB MAN", "NY @ BK VARIABLE AMERICA, FP", "2.a.a STOCKS", "CASH", "NY @ CA KB 4302", "NY @ CA BK 4317", "AMEX MES", "OTRAS DEUDAS PENDIENTES DE COBRO"], "activos": ["SUZUKI Vitara JLX", "Silence S01", "Bicis", "Husqvarna TE 250", "Tribuna Camp Nou FCB", "Antorcha Ol\u00edmpica Barcelona'92", "Rolex Submariner Black No Date"]};
+const TITULOS = {patrimonial:'2. Financiero', caja:'3. Caja personal', activos:'4. Activos'};
 
 const $ = id => document.getElementById(id);
 const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -323,6 +327,14 @@ function pintar() {
     });
     h += '</div></div>';
   }
+  // 5. Deuda: la hipoteca viva de cada propiedad. Se guarda en Real Estate, no en un bloque aparte.
+  h += '<div class="grupo"><h2>5. Deuda</h2><div class="tot" id="tot-deuda"></div><div class="campos">';
+  PROPS.forEach((p, i) => {
+    h += `<div class="campo"><label title="${p}">${p} · hipoteca pendiente</label>
+      <input data-t="hip" data-p="${i}" inputmode="decimal" value="${nFmt(re[i][COL_HIPOTECA] || 0)}"></div>`;
+  });
+  h += '</div></div>';
+
   $('form').innerHTML = h;
   original = leer();
   totales();
@@ -335,6 +347,7 @@ function leer() {
   document.querySelectorAll('#form input').forEach(el => {
     const v = parse(el.value);
     if (el.dataset.t === 're') re[+el.dataset.p][+el.dataset.c] = v;
+    else if (el.dataset.t === 'hip') re[+el.dataset.p][COL_HIPOTECA] = v;
     else bl[el.dataset.b][+el.dataset.c] = v;
   });
   return {re, bl};
@@ -342,15 +355,18 @@ function leer() {
 
 function totales() {
   const {re, bl} = leer();
-  const valor = re.reduce((s,p)=>s+p[4],0), hip = re.reduce((s,p)=>s+p[5],0);
+  const valor = re.reduce((s,p)=>s+p[4],0), hip = re.reduce((s,p)=>s+p[COL_HIPOTECA],0);
   $('tot-re').textContent = `Valor ${eur(valor)} · hipoteca ${eur(hip)} · equity ${eur(valor+hip)}`;
+  $('tot-deuda').textContent = 'Total hipoteca viva: ' + eur(hip);
   for (const b of Object.keys(COLS)) {
     const t = bl[b].reduce((s,v)=>s+v,0);
     const el = $('tot-'+b); if (el) el.textContent = 'Suma de columnas: ' + eur(t);
   }
   document.querySelectorAll('#form input').forEach(el => {
     const v = parse(el.value);
-    const o = el.dataset.t === 're' ? original.re[+el.dataset.p][+el.dataset.c] : original.bl[el.dataset.b][+el.dataset.c];
+    const o = el.dataset.t === 're' ? original.re[+el.dataset.p][+el.dataset.c]
+            : el.dataset.t === 'hip' ? original.re[+el.dataset.p][COL_HIPOTECA]
+            : original.bl[el.dataset.b][+el.dataset.c];
     el.classList.toggle('cambiado', v !== o);
     el.classList.toggle('neg', v < 0);
   });
@@ -365,6 +381,7 @@ $('copiar').addEventListener('click', () => {
   if (!re) { estado('No hay datos del mes anterior', 'err'); return; }
   document.querySelectorAll('#form input').forEach(el => {
     if (el.dataset.t === 're') el.value = nFmt(re[+el.dataset.p][+el.dataset.c] || 0);
+    else if (el.dataset.t === 'hip') el.value = nFmt(re[+el.dataset.p][COL_HIPOTECA] || 0);
     else if (bl[el.dataset.b]) el.value = nFmt(bl[el.dataset.b][+el.dataset.c] || 0);
   });
   totales();
@@ -440,6 +457,29 @@ cargar().catch(() => estado('No se pudieron cargar los datos', 'err'));
     e.preventDefault();
     try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
     location.href = '/data/';
+  });
+
+
+  // --- Sesión: caduca a los 30 min sin tocarla, así que la renovamos mientras haya actividad ---
+  var ultimaActividad = Date.now();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, function () { ultimaActividad = Date.now(); }, { passive: true, capture: true });
+  });
+
+  var LATIDO_MS = 5 * 60 * 1000;      // cada 5 minutos
+  var INACTIVO_MS = 25 * 60 * 1000;   // si lleva más de esto quieto, no renovamos: que expire
+
+  async function latir() {
+    if (Date.now() - ultimaActividad > INACTIVO_MS) return;
+    try {
+      const r = await fetch('/api/login', { credentials: 'same-origin', cache: 'no-store' });
+      const d = await r.json();
+      if (!d.authed) location.href = '/data/';
+    } catch (e) { /* sin red: ya se verá al siguiente intento */ }
+  }
+  setInterval(latir, LATIDO_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { ultimaActividad = Date.now(); latir(); }
   });
 
   const mes = document.querySelector('#asof[data-auto]');

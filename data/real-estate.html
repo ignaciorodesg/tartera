@@ -448,7 +448,9 @@ function detalle() {
     return `<tr data-mes="${r[0]}"><td class="n">${lbl(r[0])}</td>
       ${td(1, p[0])}${td(2, p[1])}${td(3, p[2])}${td(4, p[3])}
       <td class="${c >= 0 ? 'pos' : 'neg'}">${eur(c)}</td>
-      ${td(6, p[4])}${td(7, p[5])}
+      ${td(6, p[4])}
+      <!-- La hipoteca no se toca aqui: entra por el cierre de mes, apartado 5 -->
+      <td title="Se edita en el cierre de mes">${p[5] ? eur(p[5]) : '—'}</td>
       <td class="n">${eur(eqf(p))}</td></tr>`;
   }).join('');
 
@@ -570,6 +572,29 @@ arrancar();
     e.preventDefault();
     try { await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' }); } catch (err) {}
     location.href = '/data/';
+  });
+
+
+  // --- Sesión: caduca a los 30 min sin tocarla, así que la renovamos mientras haya actividad ---
+  var ultimaActividad = Date.now();
+  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, function () { ultimaActividad = Date.now(); }, { passive: true, capture: true });
+  });
+
+  var LATIDO_MS = 5 * 60 * 1000;      // cada 5 minutos
+  var INACTIVO_MS = 25 * 60 * 1000;   // si lleva más de esto quieto, no renovamos: que expire
+
+  async function latir() {
+    if (Date.now() - ultimaActividad > INACTIVO_MS) return;
+    try {
+      const r = await fetch('/api/login', { credentials: 'same-origin', cache: 'no-store' });
+      const d = await r.json();
+      if (!d.authed) location.href = '/data/';
+    } catch (e) { /* sin red: ya se verá al siguiente intento */ }
+  }
+  setInterval(latir, LATIDO_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { ultimaActividad = Date.now(); latir(); }
   });
 
   const mes = document.querySelector('#asof[data-auto]');
