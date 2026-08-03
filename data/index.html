@@ -846,7 +846,11 @@ async function runChat(mode, chipLabel) {
   }
   setInterval(latir, LATIDO_MS);
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { ultimaActividad = Date.now(); latir(); }
+    if (document.visibilityState !== 'visible') return;
+    ultimaActividad = Date.now();
+    latir();
+    // Al volver a esta pestaña, recargamos los datos: puedes haber editado en otra.
+    if (typeof load === 'function' && typeof STATE !== 'undefined' && STATE) load();
   });
 
   const mes = document.querySelector('#asof[data-auto]');
