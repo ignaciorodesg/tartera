@@ -161,6 +161,31 @@
   td.ed input{width:100%;min-width:80px;padding:4px 6px;border:1px solid var(--mint);border-radius:4px;
     background:var(--panel);font-family:inherit;font-size:13px;color:var(--ink);}
   tbody tr:hover{background:#F7F6F1;}
+  /* Cajas de activos asegurados */
+  .cajas{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:14px;}
+  .caja{background:var(--panel);border:.5px solid var(--line);border-radius:10px;padding:16px 17px;
+    cursor:pointer;transition:border-color .15s, box-shadow .15s;position:relative;}
+  .caja:hover{border-color:var(--mint-soft);}
+  .caja.sel{border-color:var(--mint);box-shadow:inset 0 0 0 1px var(--mint);}
+  .caja .nom{font-size:13.5px;font-weight:500;color:var(--ink);margin-bottom:2px;padding-right:44px;}
+  .caja .tip{font-size:10px;letter-spacing:.1em;color:var(--mute);margin-bottom:12px;}
+  .caja .imp{font-family:'Fraunces',Georgia,serif;font-size:20px;line-height:1;margin-bottom:6px;}
+  .caja .det{font-size:11px;color:var(--soft);line-height:1.6;}
+  .caja .acc{position:absolute;top:12px;right:12px;display:flex;gap:5px;opacity:0;transition:opacity .15s;}
+  .caja:hover .acc{opacity:1;}
+  .caja .acc button{border:none;background:none;font-family:inherit;font-size:10.5px;color:var(--mute);
+    cursor:pointer;padding:2px 4px;border-radius:3px;}
+  .caja .acc button:hover{color:var(--mint);background:rgba(127,203,164,.12);}
+  .caja .acc button.del:hover{color:var(--red);background:rgba(163,58,40,.10);}
+  /* Sin cobertura: la caja entera avisa */
+  .caja.caducado{border-color:var(--red);background:rgba(163,58,40,.045);}
+  .caja.caducado .imp{color:var(--red);}
+  .caja.caducado .det{color:var(--red);}
+  .barra-act{display:flex;align-items:center;gap:14px;margin-top:16px;}
+  .btn.ghost{background:none;border:.5px solid var(--line);color:var(--soft);}
+  .btn.ghost:hover{border-color:var(--mint);color:var(--mint);}
+  .alta select{width:100%;padding:8px 9px;border:.5px solid var(--line);border-radius:5px;
+    background:var(--panel);font-family:inherit;font-size:13px;color:var(--ink);outline:none;}
 </style></head><body>
 <div class="wrap layout"><aside>
       <div class="marca"><span class="logo">TARTERA</span><span class="mes num" id="asof" data-auto></span></div>
@@ -183,17 +208,36 @@
       <a href="#" class="salir" id="logout">Salir</a>
 </div></aside><main>
 <div class="hero"><div class="eyebrow">PERSONAL</div><h1>Seguros</h1>
-<div class="sub" id="lede">Pólizas y recibos recurrentes. La vigencia se calcula sola desde la fecha
-del recibo y la duración de la cobertura.</div></div>
+<div class="sub">Una caja por activo asegurado con la póliza que tiene en curso. En rojo, lo que
+está sin cubrir. Haz clic en una caja para ver su histórico de recibos.</div></div>
 
 <div class="kpis" id="kpis"></div>
+
+<div class="rule">ACTIVOS ASEGURADOS</div>
+<section>
+  <div class="cajas" id="cajas"></div>
+  <div class="barra-act">
+    <button class="btn ghost" id="nuevoActivo">+ NUEVO ACTIVO</button>
+    <span class="state" id="stateAct"></span>
+  </div>
+</section>
+
+<div class="rule" id="ruleDet">HISTÓRICO</div>
+<section><div class="card">
+  <div class="hint" id="hintDet"></div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Fecha</th><th>Concepto</th><th>Asegurado</th><th>Banco</th>
+      <th>Importe</th><th>Estado</th><th>PDF</th><th></th></tr></thead>
+    <tbody id="tabla"></tbody><tfoot id="pie"></tfoot>
+  </table></div>
+</div></section>
 
 <div class="rule">NUEVA PÓLIZA</div>
 <section><div class="alta">
   <div class="campos">
     <div class="campo"><label>FECHA</label><input type="date" id="n-fecha"></div>
     <div class="campo" style="grid-column:span 2"><label>CONCEPTO</label><input id="n-concepto" placeholder="RECIBO ... SEGUROS"></div>
-    <div class="campo"><label>ASEGURADO</label><input id="n-asegurado" placeholder="Mandri"></div>
+    <div class="campo"><label>ASEGURADO</label><select id="n-asegurado"></select></div>
     <div class="campo"><label>IMPORTE</label><input id="n-importe" inputmode="decimal" placeholder="-300"></div>
     <div class="campo"><label>BANCO</label><input id="n-banco" placeholder="BK"></div>
     <div class="campo" style="grid-column:span 2"><label>PDF DE LA PÓLIZA (OPCIONAL)</label>
@@ -202,13 +246,6 @@ del recibo y la duración de la cobertura.</div></div>
   <button class="btn" id="anadir">AÑADIR PÓLIZA</button>
   <span class="state" id="state"></span>
 </div></section>
-
-<div class="rule">PÓLIZAS</div>
-<section><div class="card"><div style="overflow-x:auto"><table>
-  <thead><tr><th>Fecha</th><th>Concepto</th><th>Asegurado</th><th>Banco</th>
-    <th>Importe</th><th>Estado</th><th>PDF</th><th></th></tr></thead>
-  <tbody id="tabla"></tbody><tfoot id="pie"></tfoot>
-</table></div></div></section>
 
 <footer><span>Tartera · seguros</span><span id="foot"></span></footer>
 </main></div>
@@ -251,6 +288,8 @@ const eur = (n,d=2) => new Intl.NumberFormat('es-ES',{style:'currency',currency:
 const hoy = new Date();
 let POLIZAS = [];
 let ADJUNTOS = [];
+let ACTIVOS = [];
+let sel = null;   // activo seleccionado (nombre), null = todos
 const adjuntoDe = id => ADJUNTOS.find(a => a.seguro_id === id);
 
 async function api(p, o) {
@@ -279,6 +318,7 @@ async function cargar() {
     const d = await (await api('/api/seguros')).json();
     POLIZAS = d.rows || [];
     try { ADJUNTOS = (await (await api('/api/adjunto')).json()).rows || []; } catch (e) { ADJUNTOS = []; }
+    try { ACTIVOS = (await (await api('/api/asegurados')).json()).rows || []; } catch (e) { ACTIVOS = []; }
     if (!POLIZAS.length && SEMILLA.length) {
       for (const s of SEMILLA) {
         const iso = /^\d{2}\/\d{2}\/\d{4}$/.test(s[0])
@@ -336,22 +376,69 @@ $('tabla').addEventListener('change', e => {
   if (inp && inp.files[0]) subirPdf(+inp.dataset.seguro, inp.files[0]);
 });
 
+function polizasDe(nombre) {
+  return POLIZAS.filter(p => (p.asegurado || '').trim() === nombre);
+}
+
+// La póliza que manda es la más reciente. Si no está vigente, el activo está al descubierto.
+function estadoActivo(nombre) {
+  const ps = polizasDe(nombre).slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
+  const ultima = ps[0] || null;
+  if (!ultima) return { cubierto: false, ultima: null, v: { txt: 'SIN PÓLIZA', cls: '' } };
+  const v = vigencia(ultima);
+  return { cubierto: v.cls !== '', ultima, v };
+}
+
+function pintarCajas() {
+  if (!ACTIVOS.length) {
+    $('cajas').innerHTML = '<div class="hint">Todavía no hay activos. Crea el primero con el botón de abajo.</div>';
+    return;
+  }
+  $('cajas').innerHTML = ACTIVOS.map(a => {
+    const e = estadoActivo(a.nombre);
+    const cls = 'caja' + (e.cubierto ? '' : ' caducado') + (sel === a.nombre ? ' sel' : '');
+    const cuerpo = e.ultima
+      ? `<div class="imp num">${eur(e.ultima.importe)}</div>
+         <div class="det">${escapeHtml(e.ultima.concepto || '')}<br>
+         ${e.ultima.fecha ? 'Recibo ' + e.ultima.fecha : 'Sin fecha'}${e.ultima.banco ? ' · ' + escapeHtml(e.ultima.banco) : ''}<br>
+         <span class="badge ${e.v.cls}">${e.v.txt}</span></div>`
+      : `<div class="imp num">—</div><div class="det">Sin ninguna póliza registrada<br>
+         <span class="badge">SIN PÓLIZA</span></div>`;
+    return `<div class="${cls}" data-activo="${escapeAttr(a.nombre)}">
+      <div class="acc">
+        <button data-editar="${a.id}" title="Renombrar">Editar</button>
+        <button class="del" data-borrar-activo="${a.id}" title="Eliminar activo">Borrar</button>
+      </div>
+      <div class="nom">${escapeHtml(a.nombre)}</div>
+      <div class="tip">${escapeHtml((a.tipo || 'ACTIVO').toUpperCase())}</div>
+      ${cuerpo}</div>`;
+  }).join('');
+}
+
 function pintar() {
   const vig = POLIZAS.filter(esVigente);
   const anual = vig.reduce((s,p)=>s+Number(p.importe||0),0);
   const proximas = POLIZAS.filter(p => vigencia(p).cls === 'pronto');
+  const descubierto = ACTIVOS.filter(a => !estadoActivo(a.nombre).cubierto).length;
 
   $('kpis').innerHTML = `
-    <div class="kpi"><div class="lab">VIGENTES</div><div class="v num">${vig.length}</div>
-      <div class="s">De ${POLIZAS.length} registradas</div></div>
+    <div class="kpi"><div class="lab">ACTIVOS</div><div class="v num">${ACTIVOS.length}</div>
+      <div class="s">Asegurables registrados</div></div>
+    <div class="kpi"><div class="lab">SIN COBERTURA</div><div class="v num${descubierto ? ' neg' : ''}">${descubierto}</div>
+      <div class="s">Caducados o sin póliza</div></div>
     <div class="kpi"><div class="lab">COSTE ANUAL</div><div class="v num">${eur(anual,0)}</div>
       <div class="s">Suma de las vigentes</div></div>
-    <div class="kpi"><div class="lab">MEDIA MENSUAL</div><div class="v num">${eur(anual/12,0)}</div>
-      <div class="s">Prorrateado</div></div>
     <div class="kpi"><div class="lab">RENUEVAN PRONTO</div><div class="v num">${proximas.length}</div>
       <div class="s">En menos de 45 días</div></div>`;
 
-  $('tabla').innerHTML = POLIZAS.map(p => {
+  pintarCajas();
+
+  const lista = sel === null ? POLIZAS : polizasDe(sel);
+  $('hintDet').innerHTML = sel === null
+    ? 'Todas las pólizas. Haz clic en un activo para filtrar. Pasa el ratón por una fila y clic en un valor para cambiarlo.'
+    : `Recibos de <b>${escapeHtml(sel)}</b>. <a href="#" id="verTodas" style="color:var(--mint)">Ver todas</a>`;
+
+  $('tabla').innerHTML = lista.map(p => {
     const v = vigencia(p);
     const c = (campo, valor, tipo) =>
       `<td class="ed" data-id="${p.id}" data-campo="${campo}" data-tipo="${tipo||'text'}">${valor ?? '—'}</td>`;
@@ -366,9 +453,84 @@ function pintar() {
       <td><button class="btn mini" data-borrar="${p.id}">Borrar</button></td></tr>`;
   }).join('');
 
-  $('pie').innerHTML = `<tr><td colspan="4">Vigentes</td><td>${eur(anual)}</td><td colspan="3"></td></tr>`;
-  $('foot').textContent = POLIZAS.length + ' pólizas';
+  const sumaLista = lista.filter(esVigente).reduce((s,p)=>s+Number(p.importe||0),0);
+  $('pie').innerHTML = `<tr><td colspan="4">Vigentes${sel ? ' de ' + escapeHtml(sel) : ''}</td><td>${eur(sumaLista)}</td><td colspan="3"></td></tr>`;
+  $('foot').textContent = lista.length + ' pólizas' + (sel ? ' · ' + sel : '');
+
+  // El desplegable del alta se nutre de los activos
+  const opts = ACTIVOS.map(a => `<option value="${escapeAttr(a.nombre)}"${a.nombre === sel ? ' selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('');
+  $('n-asegurado').innerHTML = '<option value="">— sin asignar —</option>' + opts;
 }
+
+const escapeHtml = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escapeAttr = escapeHtml;
+
+// --- activos: crear, renombrar, eliminar ---
+function actEstado(t, cls) { const e = $('stateAct'); e.textContent = t || ''; e.className = 'state' + (cls ? ' ' + cls : ''); }
+
+async function crearActivo() {
+  const nombre = (prompt('Nombre del activo asegurado (por ejemplo: Bellesguard, Coche, Vida)') || '').trim();
+  if (!nombre) return;
+  const tipo = (prompt('Tipo (opcional): Vivienda, Vehículo, Personal…') || '').trim();
+  actEstado('Creando…');
+  try {
+    const r = await api('/api/asegurados', {method:'POST', body: JSON.stringify({nombre, tipo})});
+    if (!r.ok) throw new Error('post');
+    await cargar(); actEstado('Creado', 'ok'); setTimeout(()=>actEstado(''), 2000);
+  } catch { actEstado('No se pudo crear', 'err'); }
+}
+
+async function editarActivo(id) {
+  const a = ACTIVOS.find(x => x.id === id); if (!a) return;
+  const nombre = (prompt('Nombre del activo', a.nombre) || '').trim();
+  if (!nombre) return;
+  const tipo = (prompt('Tipo', a.tipo || '') || '').trim();
+  actEstado('Guardando…');
+  try {
+    const r = await api('/api/asegurados', {method:'PUT', body: JSON.stringify({id, nombre, tipo, notas: a.notas || '', orden: a.orden || 0})});
+    if (!r.ok) throw new Error('put');
+    const j = await r.json();
+    if (sel === a.nombre) sel = nombre;
+    await cargar();
+    actEstado(j.polizas_reasignadas ? 'Guardado, pólizas reasignadas' : 'Guardado', 'ok');
+    setTimeout(()=>actEstado(''), 2500);
+  } catch { actEstado('No se pudo guardar', 'err'); }
+}
+
+async function borrarActivo(id) {
+  const a = ACTIVOS.find(x => x.id === id); if (!a) return;
+  const n = polizasDe(a.nombre).length;
+  const aviso = n
+    ? `Se elimina "${a.nombre}". Sus ${n} pólizas NO se borran, se quedan sin activo asignado. ¿Sigo?`
+    : `Se elimina "${a.nombre}". ¿Sigo?`;
+  if (!confirm(aviso)) return;
+  actEstado('Eliminando…');
+  try {
+    const r = await api('/api/asegurados?id=' + id, {method:'DELETE'});
+    if (!r.ok) throw new Error('del');
+    if (sel === a.nombre) sel = null;
+    await cargar(); actEstado('Eliminado', 'ok'); setTimeout(()=>actEstado(''), 2000);
+  } catch { actEstado('No se pudo eliminar', 'err'); }
+}
+
+$('nuevoActivo').addEventListener('click', crearActivo);
+
+$('cajas').addEventListener('click', e => {
+  const bEdit = e.target.closest('[data-editar]');
+  if (bEdit) { e.stopPropagation(); return editarActivo(+bEdit.dataset.editar); }
+  const bDel = e.target.closest('[data-borrar-activo]');
+  if (bDel) { e.stopPropagation(); return borrarActivo(+bDel.dataset.borrarActivo); }
+  const caja = e.target.closest('.caja');
+  if (!caja) return;
+  sel = sel === caja.dataset.activo ? null : caja.dataset.activo;
+  pintar();
+});
+
+document.addEventListener('click', e => {
+  if (e.target && e.target.id === 'verTodas') { e.preventDefault(); sel = null; pintar(); }
+});
+
+
 
 // --- Alta
 $('anadir').addEventListener('click', async () => {
