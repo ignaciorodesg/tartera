@@ -47,6 +47,14 @@
   /* --- Árbol de navegación --- */
   .layout{display:grid;grid-template-columns:210px 1fr;gap:44px;padding-top:32px;max-width:1180px;margin:0 auto;padding-left:44px;padding-right:44px;}
   .layout > main{min-width:0;}
+  /* Aviso de cuentas en descubierto */
+  .alerta{border:.5px solid var(--red);border-left:3px solid var(--red);border-radius:6px;
+    background:rgba(163,58,40,.05);padding:14px 18px;margin-bottom:20px;font-size:13px;line-height:1.65;}
+  .alerta b{color:var(--red);font-weight:500;}
+  .alerta .tit{font-size:10px;letter-spacing:.13em;color:var(--red);margin-bottom:7px;}
+  .alerta ul{margin:8px 0 0;padding-left:18px;color:var(--soft);}
+  .alerta li{margin-bottom:3px;}
+  .alerta a{color:var(--mint);}
   /* Banner apaisado: la imagen es 16:9, el recorte se queda en la cresta */
   .cresta{margin:0;border-radius:3px;overflow:hidden;line-height:0;background:var(--line);}
   .cresta img{width:100%;height:132px;object-fit:cover;object-position:center 0;
@@ -219,6 +227,8 @@
     </aside>
 
   <main class="col">
+    <div id="alerta" class="alerta hide"></div>
+
     <!-- La cresta del Prat de Cadi, la misma foto de la home publica -->
     <figure class="cresta">
       <img src="/2000-4-2-CAPA-FONS-prat-de-cadi-1.webp" alt="Prat de Cadí">
@@ -375,6 +385,17 @@ async function load() {
   const [datos, re] = await Promise.all([api('/api/data'), api('/api/realestate')]);
   STATE = await datos.json();
   // Valor e hipoteca por propiedad y mes: la pestana Real Estate es la fuente de verdad.
+  // Saldos del mes en curso, para el aviso de descubiertos
+  STATE.saldos = {};
+  try {
+    const bloques = [...new Set(CUENTAS.map((c) => c.bloque))];
+    const mes = (STATE.meta || {}).current_month;
+    for (const b of bloques) {
+      const { rows } = await (await api('/api/bloques?block=' + b)).json();
+      for (const r of rows || []) if (r.month === mes) STATE.saldos[b + ':' + r.col] = Number(r.value) || 0;
+    }
+  } catch { /* si falla, simplemente no se avisa */ }
+
   STATE.re = {};
   try {
     const { rows } = await re.json();
@@ -412,6 +433,43 @@ function derived() {
   const liquidity = cur.caja + cur.inv_fin;
   const lifestyle = parseNum(STATE.meta.lifestyle_cost) || 100000;
   return { cur, gross, liquidity, lifestyle };
+}
+
+// ================= CUENTAS EN DESCUBIERTO =================
+// Solo cuentas de verdad. Fuera el AMEX (su saldo negativo es lo normal en una tarjeta),
+// STOCKS, CASH y las deudas pendientes de cobro, que no son saldos bancarios.
+const CUENTAS = [
+  { bloque: 'caja', col: 0, nombre: 'NY @ CB BELL', pagina: '/data/caja.html' },
+  { bloque: 'caja', col: 1, nombre: 'NRG @ CB NRG', pagina: '/data/caja.html' },
+  { bloque: 'caja', col: 2, nombre: 'NY @ CB MAN', pagina: '/data/caja.html' },
+  { bloque: 'caja', col: 6, nombre: 'NY @ CA KB 4302', pagina: '/data/caja.html' },
+  { bloque: 'caja', col: 7, nombre: 'NY @ CA BK 4317', pagina: '/data/caja.html' },
+  { bloque: 'patrimonial', col: 0, nombre: 'Bankinter **22', pagina: '/data/patrimonial.html' },
+  { bloque: 'patrimonial', col: 1, nombre: 'Santander **XX', pagina: '/data/patrimonial.html' },
+  { bloque: 'patrimonial', col: 2, nombre: 'Caixabank **57', pagina: '/data/patrimonial.html' },
+];
+
+function pintarAlerta() {
+  const el = $('alerta');
+  const cur = currentRow();
+  const saldos = STATE.saldos || {};
+  if (!cur || !Object.keys(saldos).length) { el.classList.add('hide'); return; }
+
+  const rojo = CUENTAS
+    .map((c) => ({ ...c, saldo: saldos[c.bloque + ':' + c.col] }))
+    .filter((c) => typeof c.saldo === 'number' && c.saldo < 0)
+    .sort((a, b) => a.saldo - b.saldo);
+
+  if (!rojo.length) { el.classList.add('hide'); return; }
+
+  const total = rojo.reduce((s, c) => s + c.saldo, 0);
+  const una = rojo.length === 1;
+  el.innerHTML =
+    `<div class="tit">CUENTAS EN DESCUBIERTO</div>` +
+    `<div>${una ? 'Una cuenta cerró' : rojo.length + ' cuentas cerraron'} ${lbl(cur.month)} en negativo` +
+    `${una ? '' : `, <b>${eur(total)}</b> en total`}.</div>` +
+    `<ul>${rojo.map((c) => `<li><a href="${c.pagina}">${c.nombre}</a>: <b>${eur(c.saldo, 2)}</b></li>`).join('')}</ul>`;
+  el.classList.remove('hide');
 }
 
 // ================= PROYECCIÓN =================
@@ -548,6 +606,7 @@ function render() {
   renderAlloc(cur);
   renderProps();
   renderCharts();
+  pintarAlerta();
   renderNote();
 }
 
