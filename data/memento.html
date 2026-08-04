@@ -264,18 +264,31 @@ async function api(p, o) {
 function estado(el, t, cls) { const e = $(el); e.textContent = t || ''; e.className = 'state' + (cls ? ' ' + cls : ''); }
 
 const dia = s => { const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); };
-const iso = d => d.toISOString().slice(0,10);
+// A mano, no con toISOString: eso pasa a UTC y en España devuelve el día anterior.
+const iso = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 const nacimiento = () => dia(META.memento_nacimiento || NAC_DEF);
 const esperanza = () => Math.min(120, Math.max(1, Math.round(Number(META.memento_esperanza) || ESP_DEF)));
 
 // Semana 0 = la del nacimiento. Cada fila de la rejilla es un año de 52.
-const semanaDe = f => Math.floor((dia(iso(f)) - nacimiento()) / MS_SEM);
+// Recibe la fecha como texto 'AAAA-MM-DD', que es como viene de la base.
+const semanaDe = s => Math.floor((dia(s) - nacimiento()) / MS_SEM);
 const fechaDeSemana = i => new Date(nacimiento().getTime() + i * MS_SEM);
 
 const fmtDia = f => f.toLocaleDateString('es-ES', {day:'numeric', month:'short', year:'numeric'});
 const fmtCorto = s => dia(s).toLocaleDateString('es-ES', {month:'short', year:'numeric'});
 
 function pintarTodo() {
+  try { pintarTodoInterno(); }
+  catch (e) {
+    // Que un dato raro en una etapa no borre la rejilla ni parezca un fallo de guardado.
+    console.error('memento:', e);
+    estado('stateEtapa', 'Aviso al pintar: ' + e.message, 'err');
+    ETAPAS = [];
+    try { pintarTodoInterno(); } catch (e2) { console.error('memento (2):', e2); }
+  }
+}
+
+function pintarTodoInterno() {
   const NAC = nacimiento(), ESP = esperanza();
   const SEM = Math.max(0, Math.floor((hoy - NAC) / MS_SEM));
   const TOTAL = ESP * 52;
