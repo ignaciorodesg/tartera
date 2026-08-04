@@ -130,13 +130,22 @@
     .tree .sub{padding-left:0;} .tree .sub::before{content:'';}
   }
   .tree a.entrada{color:var(--mint);font-weight:500;}
-  .barra-inm{display:flex;gap:8px;align-items:center;margin:-8px 0 18px;flex-wrap:wrap;}
-  .btn-inm{padding:5px 12px;border:.5px solid var(--line);border-radius:16px;background:none;
-    font-family:inherit;font-size:11px;color:var(--mute);cursor:pointer;transition:all .15s;}
-  .btn-inm:hover{border-color:var(--mint);color:var(--mint);}
-  .btn-inm.del:hover{border-color:var(--red);color:var(--red);}
-  .barra-inm .state{font-size:11.5px;color:var(--mute);margin-left:6px;}
-  .barra-inm .state.ok{color:var(--mint);} .barra-inm .state.err{color:var(--red);}
+  .p{position:relative;}
+  .p .acc{position:absolute;top:14px;right:14px;display:flex;gap:5px;opacity:0;transition:opacity .15s;}
+  .p:hover .acc{opacity:1;}
+  .p .acc button{border:none;background:none;font-family:inherit;font-size:10.5px;color:var(--mute);
+    cursor:pointer;padding:2px 5px;border-radius:3px;}
+  .p .acc button:hover{color:var(--mint);background:rgba(127,203,164,.14);}
+  .p .acc button.del:hover{color:var(--red);background:rgba(163,58,40,.10);}
+  .p h3{padding-right:80px;}
+  /* Ficha de alta: mismo hueco que las demás, pero vacía */
+  .p.nueva{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    border-style:dashed;background:none;color:var(--mute);cursor:pointer;min-height:180px;
+    font-family:inherit;font-size:12.5px;width:100%;}
+  .p.nueva:hover{border-color:var(--mint);color:var(--mint);}
+  .p.nueva .mas{font-family:'Fraunces',Georgia,serif;font-size:26px;line-height:1;}
+  .rule .state{float:right;font-size:11px;letter-spacing:0;text-transform:none;}
+  .rule .state.ok{color:var(--mint);} .rule .state.err{color:var(--red);}
 </style>
 </head>
 <body>
@@ -180,7 +189,7 @@
       <div class="kpi"><div class="lab">CASH FLOW</div><div class="v num" id="kCf"></div><div class="s">Renta menos cuota y gastos</div></div>
     </div>
 
-    <div class="rule">POR PROPIEDAD</div>
+    <div class="rule">POR PROPIEDAD<span class="state" id="stateInm"></span></div>
     <section><div class="props" id="props"></div></section>
 
     <div class="rule">EVOLUCIÓN DEL EQUITY</div>
@@ -199,12 +208,6 @@
         <div class="hint">Pasa el ratón por una fila y haz clic en cualquier importe para cambiarlo.
           Enter guarda, Escape cancela. Los totales y los gráficos se recalculan solos.<span class="state" id="state"></span></div>
         <div class="tabs" id="tabs"></div>
-        <div class="barra-inm">
-          <button class="btn-inm" id="nuevoInm">+ NUEVO INMUEBLE</button>
-          <button class="btn-inm" id="editarInm">Renombrar</button>
-          <button class="btn-inm del" id="borrarInm">Eliminar</button>
-          <span class="state" id="stateInm"></span>
-        </div>
         <table>
           <thead><tr><th>Mes</th><th>Renta</th><th>Cuota</th><th>IBI</th><th>Gastos</th><th>Cash flow</th><th>Valor</th><th>Hipoteca</th><th>Equity</th></tr></thead>
           <tbody id="detail"></tbody>
@@ -261,7 +264,9 @@ const pct = (n, d = 1) => (n * 100).toFixed(d).replace('.', ',') + '%';
 
 // fila: [mes, [ [renta,cuota,ibi,otros,valor,hipoteca] x4 ], real]
 const NAMES = D.blocks;
+// Uso de cada inmueble. Arranca con lo del SEED y lo sustituye la base al cargar.
 const USE = ['Vivienda habitual', 'Alquiler', 'Alquiler', 'Alquiler / Vivienda'];
+let INMUEBLES = [];   // [{id, name, use_type, prop}]
 const CAMPOS = ['renta', 'cuota', 'ibi', 'otros', 'valor', 'hipoteca'];
 
 let R = D.rows;          // se sustituye por lo que venga de la base
@@ -320,8 +325,10 @@ async function arrancar() {
   try {
     const inm = await (await api('/api/inmuebles')).json();
     if (inm.rows && inm.rows.length) {
+      INMUEBLES = inm.rows;
       NAMES.length = 0;
-      inm.rows.forEach(p => NAMES.push(p.name));
+      USE.length = 0;
+      inm.rows.forEach(p => { NAMES.push(p.name); USE.push(p.use_type || 'Inmueble'); });
       if (sel >= NAMES.length) sel = 0;
       pintarTabs();
     }
@@ -378,8 +385,12 @@ function render() {
     const ltv = p[4] ? Math.abs(p[5]) / p[4] : 0;
     const c = cf(p);
     const yld = p[4] ? p[0] * 12 / p[4] : 0;
-    return `<div class="p">
-      <h3>${n}</h3><div class="use">${USE[k].toUpperCase()}</div>
+    return `<div class="p" data-i="${k}">
+      <div class="acc">
+        <button data-editar="${k}" title="Renombrar">Editar</button>
+        <button class="del" data-borrar="${k}" title="Eliminar inmueble">Borrar</button>
+      </div>
+      <h3>${escapeHtml(n)}</h3><div class="use">${escapeHtml((USE[k] || 'INMUEBLE').toUpperCase())}</div>
       <dl>
         <dt>Valor de mercado</dt><dd class="k">${eur(p[4])}</dd>
         <dt>Hipoteca pendiente</dt><dd>${p[5] ? eur(p[5]) : '—'}</dd>
@@ -393,7 +404,8 @@ function render() {
       <div class="cf"><span style="color:var(--mute)">Cash flow</span>
         <strong class="${c >= 0 ? 'pos' : 'neg'}">${eur(c)}/mes</strong></div>
     </div>`;
-  }).join('');
+  }).join('') + `<button class="p nueva" id="nuevoInm">
+      <span class="mas">+</span><span>Añadir inmueble</span></button>`;
 
   graficos();
   detalle();
@@ -479,23 +491,22 @@ async function recargarInmuebles(nuevoSel) {
   location.reload();   // el detalle mensual se reconstruye desde cero con las posiciones nuevas
 }
 
-$('nuevoInm').addEventListener('click', async () => {
+async function crearInmueble() {
   const name = (prompt('Nombre del inmueble') || '').trim();
   if (!name) return;
-  const use_type = (prompt('Uso (Vivienda, Alquiler…)', 'Alquiler') || '').trim();
+  const use_type = (prompt('Uso (Vivienda habitual, Alquiler…)', 'Alquiler') || '').trim();
   estadoInm('Creando…');
   try {
     const r = await api('/api/inmuebles', { method: 'POST', body: JSON.stringify({ name, use_type }) });
     if (!r.ok) throw new Error('post');
     const j = await r.json();
     estadoInm('Creado. Rellena sus importes en el cierre de mes.', 'ok');
-    setTimeout(() => recargarInmuebles(j.prop), 900);
+    setTimeout(() => recargarInmuebles(j.prop), 1100);
   } catch { estadoInm('No se pudo crear', 'err'); }
-});
+}
 
-$('editarInm').addEventListener('click', async () => {
-  const { rows } = await (await api('/api/inmuebles')).json();
-  const p = rows[sel]; if (!p) return;
+async function renombrarInmueble(k) {
+  const p = INMUEBLES[k]; if (!p) return;
   const name = (prompt('Nombre del inmueble', p.name) || '').trim();
   if (!name) return;
   const use_type = (prompt('Uso', p.use_type || '') || '').trim();
@@ -506,12 +517,11 @@ $('editarInm').addEventListener('click', async () => {
     estadoInm('Guardado', 'ok');
     setTimeout(() => recargarInmuebles(sel), 700);
   } catch { estadoInm('No se pudo guardar', 'err'); }
-});
+}
 
-$('borrarInm').addEventListener('click', async () => {
-  const { rows } = await (await api('/api/inmuebles')).json();
-  const p = rows[sel]; if (!p) return;
-  if (rows.length <= 1) { estadoInm('No puedes quedarte sin inmuebles', 'err'); return; }
+async function eliminarInmueble(k) {
+  const p = INMUEBLES[k]; if (!p) return;
+  if (INMUEBLES.length <= 1) { estadoInm('No puedes quedarte sin inmuebles', 'err'); return; }
   if (!confirm(`Se elimina "${p.name}" y TODO su histórico mensual: rentas, cuotas, valores e hipoteca.\n\nEl patrimonio de cada mes se recalcula sin él. Esto no se puede deshacer. ¿Sigo?`)) return;
   estadoInm('Eliminando…');
   try {
@@ -519,8 +529,17 @@ $('borrarInm').addEventListener('click', async () => {
     if (!r.ok) throw new Error('del');
     const j = await r.json();
     estadoInm(`Eliminado. ${j.meses_recalculados} meses recalculados.`, 'ok');
-    setTimeout(() => recargarInmuebles(0), 1200);
+    setTimeout(() => recargarInmuebles(0), 1300);
   } catch { estadoInm('No se pudo eliminar', 'err'); }
+}
+
+// Las fichas se repintan en cada render, así que el listener va en el contenedor.
+$('props').addEventListener('click', e => {
+  if (e.target.closest('#nuevoInm')) return crearInmueble();
+  const ed = e.target.closest('[data-editar]');
+  if (ed) return renombrarInmueble(+ed.dataset.editar);
+  const bo = e.target.closest('[data-borrar]');
+  if (bo) return eliminarInmueble(+bo.dataset.borrar);
 });
 
 // Índice de columna editable -> posición en el array de la propiedad
