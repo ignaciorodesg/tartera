@@ -130,6 +130,13 @@
     .tree .sub{padding-left:0;} .tree .sub::before{content:'';}
   }
   .tree a.entrada{color:var(--mint);font-weight:500;}
+  .barra-inm{display:flex;gap:8px;align-items:center;margin:-8px 0 18px;flex-wrap:wrap;}
+  .btn-inm{padding:5px 12px;border:.5px solid var(--line);border-radius:16px;background:none;
+    font-family:inherit;font-size:11px;color:var(--mute);cursor:pointer;transition:all .15s;}
+  .btn-inm:hover{border-color:var(--mint);color:var(--mint);}
+  .btn-inm.del:hover{border-color:var(--red);color:var(--red);}
+  .barra-inm .state{font-size:11.5px;color:var(--mute);margin-left:6px;}
+  .barra-inm .state.ok{color:var(--mint);} .barra-inm .state.err{color:var(--red);}
 </style>
 </head>
 <body>
@@ -192,6 +199,12 @@
         <div class="hint">Pasa el ratón por una fila y haz clic en cualquier importe para cambiarlo.
           Enter guarda, Escape cancela. Los totales y los gráficos se recalculan solos.<span class="state" id="state"></span></div>
         <div class="tabs" id="tabs"></div>
+        <div class="barra-inm">
+          <button class="btn-inm" id="nuevoInm">+ NUEVO INMUEBLE</button>
+          <button class="btn-inm" id="editarInm">Renombrar</button>
+          <button class="btn-inm del" id="borrarInm">Eliminar</button>
+          <span class="state" id="stateInm"></span>
+        </div>
         <table>
           <thead><tr><th>Mes</th><th>Renta</th><th>Cuota</th><th>IBI</th><th>Gastos</th><th>Cash flow</th><th>Valor</th><th>Hipoteca</th><th>Equity</th></tr></thead>
           <tbody id="detail"></tbody>
@@ -302,6 +315,18 @@ function aPayload(filas) {
 }
 
 async function arrancar() {
+  // Los nombres mandan desde la base, no desde el SEED de esta página: si no, un inmueble
+  // nuevo no aparecería nunca y uno renombrado seguiría con el nombre viejo.
+  try {
+    const inm = await (await api('/api/inmuebles')).json();
+    if (inm.rows && inm.rows.length) {
+      NAMES.length = 0;
+      inm.rows.forEach(p => NAMES.push(p.name));
+      if (sel >= NAMES.length) sel = 0;
+      pintarTabs();
+    }
+  } catch (e) { /* nos quedamos con los del SEED */ }
+
   try {
     const got = await (await api('/api/realestate')).json();
     if (got.rows && got.rows.length) {
@@ -428,12 +453,74 @@ function graficos() {
 }
 
 // ---------- Detalle mensual, editable ----------
-$('tabs').innerHTML = NAMES.map((n, k) => `<button class="tab${k===0?' on':''}" data-k="${k}">${n}</button>`).join('');
+function pintarTabs() {
+  $('tabs').innerHTML = NAMES.map((n, k) => `<button class="tab${k===sel?' on':''}" data-k="${k}">${escapeHtml(n)}</button>`).join('');
+}
+const escapeHtml = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+pintarTabs();
 $('tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab'); if (!b) return;
   sel = +b.dataset.k;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t === b));
+  pintarTabs();
   detalle();
+});
+
+// ---------- Inmuebles: alta, renombrado y baja ----------
+function estadoInm(t, cls) { const e = $('stateInm'); e.textContent = t || ''; e.className = 'state' + (cls ? ' ' + cls : ''); }
+
+// Tras tocar la lista hay que releerla: las posiciones son las que usa el detalle mensual.
+async function recargarInmuebles(nuevoSel) {
+  const { rows } = await (await api('/api/inmuebles')).json();
+  NAMES.length = 0;
+  rows.forEach(r => NAMES.push(r.name));
+  sel = Math.max(0, Math.min(NAMES.length - 1, nuevoSel ?? sel));
+  pintarTabs();
+  location.reload();   // el detalle mensual se reconstruye desde cero con las posiciones nuevas
+}
+
+$('nuevoInm').addEventListener('click', async () => {
+  const name = (prompt('Nombre del inmueble') || '').trim();
+  if (!name) return;
+  const use_type = (prompt('Uso (Vivienda, Alquiler…)', 'Alquiler') || '').trim();
+  estadoInm('Creando…');
+  try {
+    const r = await api('/api/inmuebles', { method: 'POST', body: JSON.stringify({ name, use_type }) });
+    if (!r.ok) throw new Error('post');
+    const j = await r.json();
+    estadoInm('Creado. Rellena sus importes en el cierre de mes.', 'ok');
+    setTimeout(() => recargarInmuebles(j.prop), 900);
+  } catch { estadoInm('No se pudo crear', 'err'); }
+});
+
+$('editarInm').addEventListener('click', async () => {
+  const { rows } = await (await api('/api/inmuebles')).json();
+  const p = rows[sel]; if (!p) return;
+  const name = (prompt('Nombre del inmueble', p.name) || '').trim();
+  if (!name) return;
+  const use_type = (prompt('Uso', p.use_type || '') || '').trim();
+  estadoInm('Guardando…');
+  try {
+    const r = await api('/api/inmuebles', { method: 'PUT', body: JSON.stringify({ id: p.id, name, use_type }) });
+    if (!r.ok) throw new Error('put');
+    estadoInm('Guardado', 'ok');
+    setTimeout(() => recargarInmuebles(sel), 700);
+  } catch { estadoInm('No se pudo guardar', 'err'); }
+});
+
+$('borrarInm').addEventListener('click', async () => {
+  const { rows } = await (await api('/api/inmuebles')).json();
+  const p = rows[sel]; if (!p) return;
+  if (rows.length <= 1) { estadoInm('No puedes quedarte sin inmuebles', 'err'); return; }
+  if (!confirm(`Se elimina "${p.name}" y TODO su histórico mensual: rentas, cuotas, valores e hipoteca.\n\nEl patrimonio de cada mes se recalcula sin él. Esto no se puede deshacer. ¿Sigo?`)) return;
+  estadoInm('Eliminando…');
+  try {
+    const r = await api('/api/inmuebles?id=' + p.id, { method: 'DELETE' });
+    if (!r.ok) throw new Error('del');
+    const j = await r.json();
+    estadoInm(`Eliminado. ${j.meses_recalculados} meses recalculados.`, 'ok');
+    setTimeout(() => recargarInmuebles(0), 1200);
+  } catch { estadoInm('No se pudo eliminar', 'err'); }
 });
 
 // Índice de columna editable -> posición en el array de la propiedad
