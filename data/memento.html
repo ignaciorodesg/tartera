@@ -147,7 +147,7 @@
     font-family:inherit;font-size:11px;letter-spacing:.08em;cursor:pointer;}
   .barra .btn.ghost{background:none;border:.5px solid var(--line);color:var(--soft);}
   .pie-supuesto{font-size:10.5px;color:var(--mute);margin-left:auto;line-height:1.5;text-align:right;}
-  .rule .state{float:right;font-size:11px;letter-spacing:0;text-transform:none;}
+  .rule .state{float:right;font-size:11px;letter-spacing:0;text-transform:none;max-width:60%;text-align:right;}
   .state.ok{color:var(--mint);} .state.err{color:var(--red);}
   .hint{font-size:11.5px;color:var(--mute);margin-bottom:16px;line-height:1.6;}
 
@@ -371,9 +371,11 @@ $('nuevaEtapa').addEventListener('click', async () => {
   estado('stateEtapa', 'Guardando…');
   try {
     const r = await api('/api/etapas', {method:'POST', body: JSON.stringify(d)});
-    if (!r.ok) throw new Error('post');
+    const j = await r.json().catch(() => ({}));
+    // Si algo falla, que se vea el motivo y no un "no se pudo" a secas.
+    if (!r.ok) throw new Error(j.detalle || j.error || ('HTTP ' + r.status));
     await cargar(); estado('stateEtapa', 'Añadida', 'ok'); setTimeout(() => estado('stateEtapa',''), 2000);
-  } catch { estado('stateEtapa', 'No se pudo guardar', 'err'); }
+  } catch (e) { estado('stateEtapa', 'No se pudo guardar: ' + e.message, 'err'); }
 });
 
 $('etapas').addEventListener('click', async e => {
@@ -384,9 +386,10 @@ $('etapas').addEventListener('click', async e => {
     estado('stateEtapa', 'Guardando…');
     try {
       const r = await api('/api/etapas', {method:'PUT', body: JSON.stringify({ id: et.id, ...d })});
-      if (!r.ok) throw new Error('put');
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detalle || j.error || ('HTTP ' + r.status));
       await cargar(); estado('stateEtapa', 'Guardada', 'ok'); setTimeout(() => estado('stateEtapa',''), 2000);
-    } catch { estado('stateEtapa', 'No se pudo guardar', 'err'); }
+    } catch (e) { estado('stateEtapa', 'No se pudo guardar: ' + e.message, 'err'); }
     return;
   }
   const bo = e.target.closest('[data-borrar]');
