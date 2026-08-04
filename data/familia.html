@@ -354,7 +354,7 @@ más los meses de cobertura, y esa cobertura se edita en la tabla.</div></div>
     <div class="campo" style="grid-column:span 2"><label>CONCEPTO</label><input id="n-concepto" placeholder="RECIBO ... SEGUROS"></div>
     <div class="campo"><label>ASEGURADO</label><select id="n-asegurado"></select></div>
     <div class="campo"><label>IMPORTE</label><input id="n-importe" inputmode="decimal" placeholder="-300"></div>
-    <div class="campo"><label>BANCO</label><input id="n-banco" placeholder="BK"></div>
+    <div class="campo"><label>BANCO</label><select id="n-banco"></select></div>
     <div class="campo"><label>COBERTURA (MESES)</label><input id="n-meses" inputmode="numeric" value="12"></div>
     <div class="campo" style="grid-column:span 2"><label>PDF DE LA PÓLIZA (OPCIONAL)</label>
       <input type="file" id="n-pdf" accept="application/pdf,.pdf"></div>
@@ -405,6 +405,7 @@ const hoy = new Date();
 let POLIZAS = [];
 let ADJUNTOS = [];
 let ACTIVOS = [];
+let BANCOS = [];
 let sel = null;   // activo seleccionado (nombre), null = todos
 const adjuntoDe = id => ADJUNTOS.find(a => a.seguro_id === id);
 
@@ -435,6 +436,7 @@ async function cargar() {
     POLIZAS = d.rows || [];
     try { ADJUNTOS = (await (await api('/api/adjunto')).json()).rows || []; } catch (e) { ADJUNTOS = []; }
     try { ACTIVOS = (await (await api('/api/asegurados')).json()).rows || []; } catch (e) { ACTIVOS = []; }
+    try { BANCOS = (await (await api('/api/bancos')).json()).rows || []; } catch (e) { BANCOS = []; }
     if (!POLIZAS.length && SEMILLA.length) {
       for (const s of SEMILLA) {
         const iso = /^\d{2}\/\d{2}\/\d{4}$/.test(s[0])
@@ -562,7 +564,7 @@ function pintar() {
       ${c('fecha', p.fecha || '—', 'date')}
       ${c('concepto', p.concepto)}
       ${c('asegurado', p.asegurado || '—')}
-      ${c('banco', p.banco || '—')}
+      ${c('banco', nombreBanco(p.banco), 'banco')}
       ${c('importe', eur(p.importe), 'num')}
       ${c('meses', (p.meses ?? 12) + ' meses', 'num')}
       <td><span class="badge ${v.cls}">${v.txt}</span></td>
@@ -574,9 +576,29 @@ function pintar() {
   $('pie').innerHTML = `<tr><td colspan="4">Vigentes${sel ? ' de ' + escapeHtml(sel) : ''}</td><td>${eur(sumaLista)}</td><td colspan="4"></td></tr>`;
   $('foot').textContent = lista.length + ' pólizas' + (sel ? ' · ' + sel : '');
 
-  // El desplegable del alta se nutre de los activos
+  // Los desplegables del alta se nutren de los activos y de la ficha de Bancos
   const opts = ACTIVOS.map(a => `<option value="${escapeAttr(a.nombre)}"${a.nombre === sel ? ' selected' : ''}>${escapeHtml(a.nombre)}</option>`).join('');
   $('n-asegurado').innerHTML = '<option value="">— sin asignar —</option>' + opts;
+
+  // El código es el valor: así lo que se guarda coincide con lo que ya hay en las pólizas.
+  const usados = [...new Set(POLIZAS.map(p => (p.banco || '').trim()).filter(Boolean))];
+  const conocidos = new Set(BANCOS.map(b => (b.codigo || '').trim().toUpperCase()));
+  const huerfanos = usados.filter(c => !conocidos.has(c.toUpperCase()));
+  $('n-banco').innerHTML =
+    '<option value="">— sin banco —</option>' +
+    BANCOS.map(b => `<option value="${escapeAttr(b.codigo || b.nombre)}">${escapeHtml((b.codigo ? b.codigo + ' · ' : '') + b.nombre)}</option>`).join('') +
+    (huerfanos.length
+      ? '<optgroup label="Sin ficha en Bancos">' +
+        huerfanos.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('') + '</optgroup>'
+      : '');
+}
+
+// Con la ficha creada se ve el nombre; si no, el código tal cual.
+function nombreBanco(cod) {
+  const c = (cod || '').trim();
+  if (!c) return '—';
+  const b = BANCOS.find(x => (x.codigo || '').trim().toUpperCase() === c.toUpperCase());
+  return b ? escapeHtml(b.nombre) : escapeHtml(c);
 }
 
 const escapeHtml = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -692,12 +714,25 @@ $('tabla').addEventListener('click', async e => {
   const p = POLIZAS.find(x => x.id === id);
   if (!p) return;
 
-  const inp = document.createElement('input');
+  let inp;
+  if (td.dataset.tipo === 'banco') {
+    inp = document.createElement('select');
+    inp.innerHTML = '<option value="">— sin banco —</option>' +
+      BANCOS.map(b => `<option value="${escapeAttr(b.codigo || b.nombre)}">${escapeHtml((b.codigo ? b.codigo + ' · ' : '') + b.nombre)}</option>`).join('');
+    if (p.banco && !BANCOS.some(b => (b.codigo || '').toUpperCase() === String(p.banco).toUpperCase())) {
+      inp.insertAdjacentHTML('beforeend', `<option value="${escapeAttr(p.banco)}">${escapeHtml(p.banco)} (sin ficha)</option>`);
+    }
+    inp.value = p.banco || '';
+    td.textContent = ''; td.appendChild(inp); inp.focus();
+    inp.addEventListener('change', () => inp.blur());
+  } else {
+  inp = document.createElement('input');
   if (td.dataset.tipo === 'date') inp.type = 'date';
   inp.value = campo === 'importe' ? nFmt(p.importe)
             : campo === 'meses' ? String(p.meses ?? 12)
             : (p[campo] ?? '');
   td.textContent = ''; td.appendChild(inp); inp.focus(); inp.select();
+  }
 
   let hecho = false;
   const cerrar = async guardar => {

@@ -282,6 +282,18 @@
     .kpi{flex:1 1 100%;border-right:none;}
     .hero .big{font-size:32px;}
   }
+  /* Rejilla a la izquierda, etapas a la derecha */
+  .mem-grid{display:grid;grid-template-columns:1fr 296px;gap:16px;align-items:start;}
+  .lateral{position:sticky;top:32px;max-height:calc(100vh - 64px);overflow-y:auto;}
+  .lat-tit{font-size:10px;letter-spacing:.12em;color:var(--mute);margin-bottom:12px;}
+  .lateral .et{grid-template-columns:12px 1fr;gap:9px;padding:10px 0;font-size:12.5px;}
+  .lateral .et .ran{grid-column:2;font-size:11px;margin-top:2px;}
+  .lateral .et .acc{grid-column:2;opacity:1;margin-top:5px;}
+  .lateral .et .nota{font-size:11.5px;}
+  @media (max-width:1040px){
+    .mem-grid{grid-template-columns:1fr;}
+    .lateral{position:static;max-height:none;}
+  }
 </style></head><body>
 <div class="wrap layout"><aside>
       <div class="marca"><span class="logo">TARTERA</span><span class="mes num" id="asof" data-auto></span></div>
@@ -314,18 +326,19 @@
   <span class="pie-supuesto" id="supuesto"></span>
 </div>
 
-<div class="rule">CADA CUADRO ES UNA SEMANA</div>
-<section><div class="card">
-  <div class="weeks" id="weeks"></div>
-  <div class="leyenda" id="leyenda"></div>
-</div></section>
-
-<div class="rule">ETAPAS Y MOMENTOS<span class="state" id="stateEtapa"></span></div>
-<section><div class="card">
-  <div class="hint">Cada etapa pinta sus semanas en la rejilla. Sin fecha de fin es un momento suelto:
-  una sola semana marcada. Pasa el ratón por un cuadro para ver a qué corresponde.</div>
-  <div id="etapas"></div>
-  <button class="btn ghost" id="nuevaEtapa" style="margin-top:16px">+ AÑADIR ETAPA O MOMENTO</button>
+<div class="rule">CADA CUADRO ES UNA SEMANA<span class="state" id="stateEtapa"></span></div>
+<section><div class="mem-grid">
+  <div class="card">
+    <div class="weeks" id="weeks"></div>
+    <div class="leyenda" id="leyenda"></div>
+  </div>
+  <div class="card lateral">
+    <div class="lat-tit">ETAPAS Y MOMENTOS</div>
+    <div class="hint">Cada etapa pinta sus semanas. Sin fecha de fin es un momento suelto:
+    una sola semana. Pasa el ratón por un cuadro para ver a qué corresponde.</div>
+    <div id="etapas"></div>
+    <button class="btn ghost" id="nuevaEtapa" style="margin-top:16px;width:100%">+ AÑADIR</button>
+  </div>
 </div></section>
 
 <footer><span>Tartera</span><span id="foot"></span></footer>
