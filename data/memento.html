@@ -137,6 +137,38 @@
     border:.5px solid var(--line);color:var(--mute);}
   .vacio{text-align:center;padding:44px 20px;color:var(--mute);font-size:13px;line-height:1.7;}
   .tree a.entrada{color:var(--mint);font-weight:500;}
+  .barra{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px;}
+  .barra .campo{display:flex;flex-direction:column;gap:5px;}
+  .barra label{font-size:9.5px;letter-spacing:.13em;color:var(--mute);}
+  .barra input{padding:7px 9px;border:.5px solid var(--line);border-radius:5px;background:var(--panel);
+    font-family:inherit;font-size:13px;color:var(--ink);outline:none;font-variant-numeric:tabular-nums;}
+  .barra input:focus{border-color:var(--mint);}
+  .barra .btn{padding:8px 16px;border:none;border-radius:18px;background:var(--mint);color:#fff;
+    font-family:inherit;font-size:11px;letter-spacing:.08em;cursor:pointer;}
+  .barra .btn.ghost{background:none;border:.5px solid var(--line);color:var(--soft);}
+  .pie-supuesto{font-size:10.5px;color:var(--mute);margin-left:auto;line-height:1.5;text-align:right;}
+  .rule .state{float:right;font-size:11px;letter-spacing:0;text-transform:none;}
+  .state.ok{color:var(--mint);} .state.err{color:var(--red);}
+  .hint{font-size:11.5px;color:var(--mute);margin-bottom:16px;line-height:1.6;}
+
+  /* Lista de etapas: color, rango, nombre y nota */
+  .et{display:grid;grid-template-columns:14px 132px 1fr auto;gap:14px;align-items:start;
+    padding:11px 0;border-bottom:.5px solid var(--line);font-size:13px;}
+  .et:last-of-type{border-bottom:none;}
+  .et .sw{width:12px;height:12px;border-radius:3px;margin-top:3px;}
+  .et .ran{font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums;line-height:1.5;}
+  .et .nom{color:var(--ink);}
+  .et .nota{font-size:12px;color:var(--soft);margin-top:3px;line-height:1.6;}
+  .et .acc{display:flex;gap:6px;opacity:0;transition:opacity .15s;}
+  .et:hover .acc{opacity:1;}
+  .et .acc button{border:none;background:none;font-family:inherit;font-size:10.5px;color:var(--mute);
+    cursor:pointer;padding:2px 5px;border-radius:3px;}
+  .et .acc button:hover{color:var(--mint);background:rgba(127,203,164,.14);}
+  .et .acc button.del:hover{color:var(--red);background:rgba(163,58,40,.10);}
+  .btn.ghost{padding:8px 16px;border:.5px solid var(--line);border-radius:18px;background:none;
+    font-family:inherit;font-size:11px;letter-spacing:.08em;color:var(--soft);cursor:pointer;}
+  .btn.ghost:hover{border-color:var(--mint);color:var(--mint);}
+  .w[title]{cursor:help;}
 </style></head><body>
 <div class="wrap layout"><aside>
       <div class="marca"><span class="logo">TARTERA</span><span class="mes num" id="asof" data-auto></span></div>
@@ -161,17 +193,29 @@
 <div class="hero"><div class="eyebrow">PERSONAL</div><h1>Memento Mori</h1><div class="sub">El recordatorio de que el patrimonio se acumula en un tiempo que no se acumula.</div></div>
 <div class="kpis" id="kpis"></div>
 
+<div class="barra">
+  <div class="campo"><label>NACIMIENTO</label><input type="date" id="f-nac"></div>
+  <div class="campo"><label>ESPERANZA (AÑOS)</label><input id="f-esp" inputmode="numeric" style="width:90px"></div>
+  <button class="btn" id="guardarVida">GUARDAR</button>
+  <span class="state" id="stateVida"></span>
+  <span class="pie-supuesto" id="supuesto"></span>
+</div>
+
 <div class="rule">CADA CUADRO ES UNA SEMANA</div>
 <section><div class="card">
   <div class="weeks" id="weeks"></div>
-  <div class="leyenda">
-    <span><i style="background:var(--mint);opacity:.85"></i>Vividas</span>
-    <span><i style="background:var(--red)"></i>Esta semana</span>
-    <span><i style="background:var(--line)"></i>Por delante</span>
-    <span style="margin-left:auto">Cada fila es un año · 52 semanas</span>
-  </div>
+  <div class="leyenda" id="leyenda"></div>
 </div></section>
-<footer><span>Tartera</span><span>Nacimiento 1983 · esperanza 83 años</span></footer>
+
+<div class="rule">ETAPAS Y MOMENTOS<span class="state" id="stateEtapa"></span></div>
+<section><div class="card">
+  <div class="hint">Cada etapa pinta sus semanas en la rejilla. Sin fecha de fin es un momento suelto:
+  una sola semana marcada. Pasa el ratón por un cuadro para ver a qué corresponde.</div>
+  <div id="etapas"></div>
+  <button class="btn ghost" id="nuevaEtapa" style="margin-top:16px">+ AÑADIR ETAPA O MOMENTO</button>
+</div></section>
+
+<footer><span>Tartera</span><span id="foot"></span></footer>
 </main></div><script>
 /* Formato español en toda la app: miles con punto, decimales con coma.
    nFmt  -> numero a texto ("1.234.567,89")
@@ -203,26 +247,171 @@ window.nParse = function (s) {
 </script>
 <script>
 'use strict';
-const NACIMIENTO = new Date(1983, 0, 1);   // Barcelona, 1983
-const ESPERANZA = 83;                       // años, media española
-const hoy = new Date();
-const SEM = Math.floor((hoy - NACIMIENTO) / (7*24*3600*1000));
-const TOTAL = ESPERANZA * 52;
 const $ = id => document.getElementById(id);
-const nf = n => new Intl.NumberFormat('es-ES',{useGrouping:'always'}).format(n);
+const nf = n => new Intl.NumberFormat('es-ES', {useGrouping:'always'}).format(n);
+const MS_SEM = 7 * 24 * 3600 * 1000;
+const NAC_DEF = '1983-11-09';   // Barcelona
+const ESP_DEF = 83;             // años
 
-$('kpis').innerHTML = `
- <div class="kpi"><div class="lab">EDAD</div><div class="v num">${Math.floor(SEM/52)} años</div><div class="s">Desde 1983</div></div>
- <div class="kpi"><div class="lab">SEMANAS VIVIDAS</div><div class="v num">${nf(SEM)}</div><div class="s">De ${nf(TOTAL)} estimadas</div></div>
- <div class="kpi"><div class="lab">RECORRIDO</div><div class="v num">${(SEM/TOTAL*100).toFixed(1).replace('.',',')}%</div><div class="s">A esperanza de vida media</div></div>
- <div class="kpi"><div class="lab">POR DELANTE</div><div class="v num">${nf(Math.max(0,TOTAL-SEM))}</div><div class="s">Semanas</div></div>`;
+let META = {}, ETAPAS = [];
+const hoy = new Date();
 
-let html = '';
-for (let i = 0; i < TOTAL; i++) {
-  const cls = i < SEM ? 'past' : (i === SEM ? 'now' : '');
-  html += `<div class="w ${cls}"></div>`;
+async function api(p, o) {
+  const r = await fetch(p, {credentials:'same-origin', headers:{'Content-Type':'application/json'}, ...(o||{})});
+  if (r.status === 401) { location.href = '/data/'; throw new Error('no_auth'); }
+  return r;
 }
-$('weeks').innerHTML = html;
+function estado(el, t, cls) { const e = $(el); e.textContent = t || ''; e.className = 'state' + (cls ? ' ' + cls : ''); }
+
+const dia = s => { const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); };
+const iso = d => d.toISOString().slice(0,10);
+const nacimiento = () => dia(META.memento_nacimiento || NAC_DEF);
+const esperanza = () => Math.min(120, Math.max(1, Math.round(Number(META.memento_esperanza) || ESP_DEF)));
+
+// Semana 0 = la del nacimiento. Cada fila de la rejilla es un año de 52.
+const semanaDe = f => Math.floor((dia(iso(f)) - nacimiento()) / MS_SEM);
+const fechaDeSemana = i => new Date(nacimiento().getTime() + i * MS_SEM);
+
+const fmtDia = f => f.toLocaleDateString('es-ES', {day:'numeric', month:'short', year:'numeric'});
+const fmtCorto = s => dia(s).toLocaleDateString('es-ES', {month:'short', year:'numeric'});
+
+function pintarTodo() {
+  const NAC = nacimiento(), ESP = esperanza();
+  const SEM = Math.max(0, Math.floor((hoy - NAC) / MS_SEM));
+  const TOTAL = ESP * 52;
+  const edad = Math.floor((hoy - NAC) / (365.2425 * 24 * 3600 * 1000));
+
+  $('f-nac').value = iso(NAC);
+  $('f-esp').value = String(ESP);
+  $('supuesto').innerHTML = `Sobre <b>${ESP} años</b> de esperanza y nacimiento el ${fmtDia(NAC)}<br>${nf(TOTAL)} semanas en total`;
+  $('foot').textContent = `Nacimiento ${fmtDia(NAC)} · esperanza ${ESP} años`;
+
+  $('kpis').innerHTML = `
+   <div class="kpi"><div class="lab">EDAD</div><div class="v num">${edad} años</div><div class="s">Desde ${NAC.getFullYear()}</div></div>
+   <div class="kpi"><div class="lab">SEMANAS VIVIDAS</div><div class="v num">${nf(SEM)}</div><div class="s">De ${nf(TOTAL)} estimadas</div></div>
+   <div class="kpi"><div class="lab">RECORRIDO</div><div class="v num">${(SEM/TOTAL*100).toFixed(1).replace('.',',')}%</div><div class="s">A esperanza de vida media</div></div>
+   <div class="kpi"><div class="lab">POR DELANTE</div><div class="v num">${nf(Math.max(0, TOTAL-SEM))}</div><div class="s">Semanas</div></div>`;
+
+  // A qué etapa pertenece cada semana. La última declarada gana si se solapan.
+  const deSemana = new Array(TOTAL).fill(null);
+  for (const e of ETAPAS) {
+    const a = Math.max(0, semanaDe(e.desde));
+    const b = e.hasta ? semanaDe(e.hasta) : a;
+    for (let i = a; i <= Math.min(b, TOTAL - 1); i++) if (i >= 0) deSemana[i] = e;
+  }
+
+  let html = '';
+  for (let i = 0; i < TOTAL; i++) {
+    const e = deSemana[i];
+    const cls = i < SEM ? 'past' : (i === SEM ? 'now' : '');
+    const f = fechaDeSemana(i);
+    const t = (e ? e.nombre + ' · ' : '') + 'semana ' + (i + 1) + ' · ' + fmtDia(f);
+    const st = e ? ` style="background:${e.color};opacity:${i <= SEM ? 1 : .38}"` : '';
+    html += `<div class="w ${cls}"${st} title="${t.replace(/"/g, '&quot;')}"></div>`;
+  }
+  $('weeks').innerHTML = html;
+
+  $('leyenda').innerHTML =
+    `<span><i style="background:var(--mint);opacity:.85"></i>Vividas</span>
+     <span><i style="background:var(--red)"></i>Esta semana</span>
+     <span><i style="background:var(--line)"></i>Por delante</span>` +
+    ETAPAS.map(e => `<span><i style="background:${e.color}"></i>${esc(e.nombre)}</span>`).join('') +
+    `<span style="margin-left:auto">Cada fila es un año · 52 semanas</span>`;
+
+  $('etapas').innerHTML = ETAPAS.length ? ETAPAS.map(e => {
+    const a = semanaDe(e.desde), b = e.hasta ? semanaDe(e.hasta) : a;
+    const dur = e.hasta ? ((b - a + 1) / 52).toFixed(1).replace('.', ',') + ' años' : 'un momento';
+    return `<div class="et">
+      <div class="sw" style="background:${e.color}"></div>
+      <div class="ran">${fmtCorto(e.desde)}${e.hasta ? ' → ' + fmtCorto(e.hasta) : ''}<br><span style="opacity:.7">${dur}</span></div>
+      <div><div class="nom">${esc(e.nombre)}</div>${e.nota ? `<div class="nota">${esc(e.nota)}</div>` : ''}</div>
+      <div class="acc">
+        <button data-editar="${e.id}">Editar</button>
+        <button class="del" data-borrar="${e.id}">Borrar</button>
+      </div></div>`;
+  }).join('') : '<div class="hint" style="margin:0">Todavía no hay ninguna etapa. Añade la primera abajo.</div>';
+}
+
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// --- guardar nacimiento y esperanza ---
+$('guardarVida').addEventListener('click', async () => {
+  const nac = $('f-nac').value;
+  const esp = Math.min(120, Math.max(1, Math.round(Number($('f-esp').value) || ESP_DEF)));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nac)) { estado('stateVida', 'Fecha no válida', 'err'); return; }
+  estado('stateVida', 'Guardando…');
+  try {
+    const r = await api('/api/data', {method:'PUT', body: JSON.stringify({
+      meta: { memento_nacimiento: nac, memento_esperanza: String(esp) } })});
+    if (!r.ok) throw new Error('save');
+    META.memento_nacimiento = nac; META.memento_esperanza = String(esp);
+    pintarTodo(); estado('stateVida', 'Guardado', 'ok');
+    setTimeout(() => estado('stateVida', ''), 2200);
+  } catch { estado('stateVida', 'No se pudo guardar', 'err'); }
+});
+
+// --- etapas ---
+const PALETA = ['#0F6E56', '#7FCBA4', '#221F1A', '#8C8B85', '#A33A28', '#D9A441', '#4A6FA5', '#7B5EA7'];
+
+async function pedirEtapa(base) {
+  const nombre = (prompt('Nombre de la etapa o momento (Colegio, Universidad, Rocketroi…)', base?.nombre || '') || '').trim();
+  if (!nombre) return null;
+  const desde = (prompt('Fecha de inicio (AAAA-MM-DD)', base?.desde || '') || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) { alert('La fecha de inicio no es válida.'); return null; }
+  const hasta = (prompt('Fecha de fin (AAAA-MM-DD). Déjalo vacío si es un momento puntual.', base?.hasta || '') || '').trim();
+  if (hasta && !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) { alert('La fecha de fin no es válida.'); return null; }
+  const nota = (prompt('Comentario (opcional)', base?.nota || '') || '').trim();
+  const sug = base?.color || PALETA[ETAPAS.length % PALETA.length];
+  const color = (prompt('Color en hexadecimal', sug) || sug).trim();
+  return { nombre, desde, hasta: hasta || null, nota, color: /^#[0-9a-fA-F]{6}$/.test(color) ? color : sug };
+}
+
+$('nuevaEtapa').addEventListener('click', async () => {
+  const d = await pedirEtapa(null); if (!d) return;
+  estado('stateEtapa', 'Guardando…');
+  try {
+    const r = await api('/api/etapas', {method:'POST', body: JSON.stringify(d)});
+    if (!r.ok) throw new Error('post');
+    await cargar(); estado('stateEtapa', 'Añadida', 'ok'); setTimeout(() => estado('stateEtapa',''), 2000);
+  } catch { estado('stateEtapa', 'No se pudo guardar', 'err'); }
+});
+
+$('etapas').addEventListener('click', async e => {
+  const ed = e.target.closest('[data-editar]');
+  if (ed) {
+    const et = ETAPAS.find(x => x.id === +ed.dataset.editar); if (!et) return;
+    const d = await pedirEtapa(et); if (!d) return;
+    estado('stateEtapa', 'Guardando…');
+    try {
+      const r = await api('/api/etapas', {method:'PUT', body: JSON.stringify({ id: et.id, ...d })});
+      if (!r.ok) throw new Error('put');
+      await cargar(); estado('stateEtapa', 'Guardada', 'ok'); setTimeout(() => estado('stateEtapa',''), 2000);
+    } catch { estado('stateEtapa', 'No se pudo guardar', 'err'); }
+    return;
+  }
+  const bo = e.target.closest('[data-borrar]');
+  if (bo) {
+    const et = ETAPAS.find(x => x.id === +bo.dataset.borrar); if (!et) return;
+    if (!confirm(`¿Eliminar "${et.nombre}"?`)) return;
+    try {
+      await api('/api/etapas?id=' + et.id, {method:'DELETE'});
+      await cargar(); estado('stateEtapa', 'Eliminada', 'ok'); setTimeout(() => estado('stateEtapa',''), 2000);
+    } catch { estado('stateEtapa', 'No se pudo eliminar', 'err'); }
+  }
+});
+
+async function cargar() {
+  try {
+    const d = await (await api('/api/data')).json();
+    META = d.meta || {};
+  } catch { META = {}; }
+  try {
+    ETAPAS = (await (await api('/api/etapas')).json()).rows || [];
+  } catch { ETAPAS = []; }
+  pintarTodo();
+}
+
+cargar();
 </script>
 <script>
 /* Negativos en rojo, en toda la página.
